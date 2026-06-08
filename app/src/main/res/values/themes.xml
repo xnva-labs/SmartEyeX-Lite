@@ -9,4 +9,10 @@
         <item name="android:navigationBarColor">#0D0D0D</item>
         <item name="android:windowBackground">@color/cyber_dark</item>
     </style>
+
+    <style name="Theme.SmartEyeX.Splash" parent="Theme.SmartEyeX">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
 </resources>

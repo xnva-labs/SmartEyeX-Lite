@@ -1,0 +1,12 @@
+-keep class com.smarteyex.lite.** { *; }
+-keepclassmembers class com.smarteyex.lite.** { *; }
+-keep class androidx.** { *; }
+-keep interface androidx.** { *; }
+-keep class com.google.android.material.** { *; }
+-keep interface com.google.android.material.** { *; }
+-keep class com.google.mlkit.** { *; }
+-keep interface com.google.mlkit.** { *; }
+-dontwarn androidx.**
+-dontwarn com.google.**
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
