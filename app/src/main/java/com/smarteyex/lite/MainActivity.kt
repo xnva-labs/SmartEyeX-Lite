@@ -1,34 +1,37 @@
 package com.smarteyex.lite
 
 import android.os.Bundle
-import android.widget.Button
-import android.widget.EditText
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.drawerlayout.widget.DrawerLayout
+import com.google.android.material.navigation.NavigationView
 
 class MainActivity : AppCompatActivity() {
-    
-    private lateinit var inputMessage: EditText
-    private lateinit var sendButton: Button
-    private lateinit var chatDisplay: TextView
+    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var navView: NavigationView
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         
-        inputMessage = findViewById(R.id.inputMessage)
-        sendButton = findViewById(R.id.sendButton)
-        chatDisplay = findViewById(R.id.chatDisplay)
+        drawerLayout = findViewById(R.id.drawerLayout)
+        navView = findViewById(R.id.navView)
         
-        sendButton.setOnClickListener {
-            val userMessage = inputMessage.text.toString()
-            if (userMessage.isNotEmpty()) {
-                chatDisplay.append("Lo: $userMessage\n")
-                inputMessage.text.clear()
-                
-                // Sementara pake reply palsu, nanti diganti API AI
-                chatDisplay.append("SmartEyeX: Masih mode testing Bung, nanti gw konek ke AI!\n\n")
+        setupNavigation()
+    }
+    
+    private fun setupNavigation() {
+        navView.setNavigationItemSelectedListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.nav_chat -> { /* Handle chat */ }
+                R.id.nav_camera -> { /* Handle camera */ }
+                R.id.nav_memory -> { /* Handle memory */ }
+                R.id.nav_profile -> { /* Handle profile */ }
+                R.id.nav_journal -> { /* Handle journal */ }
+                R.id.nav_reminder -> { /* Handle reminder */ }
+                R.id.nav_settings -> { /* Handle settings */ }
             }
+            drawerLayout.closeDrawers()
+            true
         }
     }
 }

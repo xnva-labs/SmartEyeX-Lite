@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SmartEyeX Lite</string>
+    <string name="settings">Settings</string>
+    <string name="camera">Camera</string>
+    <string name="type_message">Ketik pesan...</string>
+    <string name="send">Send</string>
+    <string name="voice">Voice</string>
+</resources>
