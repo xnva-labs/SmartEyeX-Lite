@@ -16,7 +16,6 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: gradle
     
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
@@ -27,23 +26,23 @@ jobs:
     - name: Make gradlew executable
       run: chmod +x ./gradlew
     
-    - name: Download Gradle wrapper
+    - name: Create gradle wrapper directory
+      run: mkdir -p gradle/wrapper
+    
+    - name: Download gradle-wrapper.jar
       run: |
-        mkdir -p gradle/wrapper
-        wget https://services.gradle.org/distributions/gradle-8.5-all.zip -O gradle-wrapper.zip
-        unzip -o gradle-wrapper.zip -d gradle/wrapper/
-        ls -la gradle/wrapper/
+        wget -O gradle/wrapper/gradle-wrapper.jar https://github.com/gradle/gradle/raw/master/gradle/wrapper/gradle-wrapper.jar
     
-    - name: Build with Gradle
-      run: ./gradlew clean build -x test --stacktrace
+    - name: Verify gradle-wrapper.jar exists
+      run: ls -lh gradle/wrapper/gradle-wrapper.jar
     
-    - name: Assemble Debug APK
-      run: ./gradlew assembleDebug --stacktrace
+    - name: Build APK
+      run: ./gradlew assembleDebug --no-daemon --stacktrace
     
-    - name: Upload APK Artifact
+    - name: Upload APK
       if: success()
       uses: actions/upload-artifact@v4
       with:
-        name: SmartEyeX-Lite-APK
+        name: SmartEyeX-Lite-Debug
         path: app/build/outputs/apk/debug/
         retention-days: 30
