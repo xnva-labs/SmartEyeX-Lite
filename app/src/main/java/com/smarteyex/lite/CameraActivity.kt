@@ -1,8 +1,12 @@
 package com.smarteyex.lite
 
 import android.Manifest
+import android.animation.ValueAnimator
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.view.View
+import android.widget.ImageButton
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -11,7 +15,6 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.google.android.material.button.MaterialButton
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.label.ImageLabeling
 import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
@@ -24,8 +27,9 @@ class CameraActivity : AppCompatActivity() {
 
     private lateinit var previewView: PreviewView
     private lateinit var resultText: TextView
-    private lateinit var captureButton: MaterialButton
-    private lateinit var backButton: MaterialButton
+    private lateinit var captureButton: ImageButton
+    private lateinit var backButton: ImageButton
+    private lateinit var scanProgress: ProgressBar
 
     private var imageCapture: ImageCapture? = null
     private lateinit var cameraExecutor: ExecutorService
@@ -43,8 +47,18 @@ class CameraActivity : AppCompatActivity() {
         resultText = findViewById(R.id.resultText)
         captureButton = findViewById(R.id.captureButton)
         backButton = findViewById(R.id.backButton)
+        scanProgress = findViewById(R.id.scanProgress)
 
         cameraExecutor = Executors.newSingleThreadExecutor()
+
+        // Animasi garis scan bergerak
+        val scanLine = findViewById<View>(R.id.scanLine)
+        scanLine.animate()
+            .translationY(1500f)
+            .setDuration(3000)
+            .setRepeatCount(ValueAnimator.INFINITE)
+            .setRepeatMode(ValueAnimator.REVERSE)
+            .start()
 
         // Cek dan minta izin kamera
         if (allPermissionsGranted()) {
@@ -106,11 +120,16 @@ class CameraActivity : AppCompatActivity() {
     }
 
     private fun analyzeImage(imageProxy: ImageProxy) {
+        // Tampilkan progress bar
+        runOnUiThread {
+            scanProgress.visibility = View.VISIBLE
+            resultText.text = "🔍 MENGANALISIS..."
+        }
+
         val mediaImage = imageProxy.image
         if (mediaImage != null) {
             val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
 
-            // Gunakan Object Detection + Classification (lebih akurat)
             val options = ObjectDetectorOptions.Builder()
                 .setDetectorMode(ObjectDetectorOptions.SINGLE_IMAGE_MODE)
                 .enableClassification()
@@ -120,34 +139,39 @@ class CameraActivity : AppCompatActivity() {
 
             objectDetector.process(inputImage)
                 .addOnSuccessListener { objects ->
-                    if (objects.isNotEmpty()) {
-                        val labels = objects.mapNotNull { obj ->
-                            obj.labels.firstOrNull()?.text?.let { label ->
-                                val confidence = (obj.labels.firstOrNull()?.confidence ?: 0f) * 100
-                                "$label (${confidence.toInt()}%)"
-                            }
-                        }
-                        resultText.text = "🔍 Terdeteksi: ${labels.joinToString(", ")}"
-                    } else {
-                        // Fallback ke image labeling
-                        val labeler = ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS)
-                        labeler.process(inputImage)
-                            .addOnSuccessListener { labels ->
-                                if (labels.isNotEmpty()) {
-                                    val topLabel = labels[0].text
-                                    val confidence = (labels[0].confidence * 100).toInt()
-                                    resultText.text = "🔍 Kemungkinan: $topLabel ($confidence%)"
-                                } else {
-                                    resultText.text = "🔍 Tidak bisa mengenali objek"
+                    runOnUiThread {
+                        scanProgress.visibility = View.GONE
+                        if (objects.isNotEmpty()) {
+                            val labels = objects.mapNotNull { obj ->
+                                obj.labels.firstOrNull()?.text?.let { label ->
+                                    val confidence = (obj.labels.firstOrNull()?.confidence ?: 0f) * 100
+                                    "$label (${confidence.toInt()}%)"
                                 }
                             }
-                            .addOnFailureListener { e ->
-                                resultText.text = "⚠️ Error analisis: ${e.message}"
-                            }
+                            resultText.text = "🔍 TERDETEKSI: ${labels.joinToString(", ")}"
+                        } else {
+                            val labeler = ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS)
+                            labeler.process(inputImage)
+                                .addOnSuccessListener { labels ->
+                                    if (labels.isNotEmpty()) {
+                                        val topLabel = labels[0].text
+                                        val confidence = (labels[0].confidence * 100).toInt()
+                                        resultText.text = "🔍 KEMUNGKINAN: $topLabel ($confidence%)"
+                                    } else {
+                                        resultText.text = "🔍 TIDAK TERDETEKSI"
+                                    }
+                                }
+                                .addOnFailureListener { e ->
+                                    resultText.text = "⚠️ ERROR: ${e.message}"
+                                }
+                        }
                     }
                 }
                 .addOnFailureListener { e ->
-                    resultText.text = "⚠️ Gagal deteksi objek: ${e.message}"
+                    runOnUiThread {
+                        scanProgress.visibility = View.GONE
+                        resultText.text = "⚠️ GAGAL: ${e.message}"
+                    }
                 }
         }
     }
