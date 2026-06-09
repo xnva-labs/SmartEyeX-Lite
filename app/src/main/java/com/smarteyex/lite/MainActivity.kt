@@ -59,6 +59,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     companion object {
         private const val GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"
         private const val GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key="
+
+            private const val TYPE_USER = 1
+            private const val TYPE_AI = 2
     }
 
     data class ChatMessage(
@@ -71,9 +74,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     inner class ChatAdapter(private val messages: List<ChatMessage>) :
         RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-        companion object {
-            private const val TYPE_USER = 1
-            private const val TYPE_AI = 2
+        
         }
 
         override fun getItemViewType(position: Int): Int {
