@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0A0A0A"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Header Futuristik -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="24dp">
+
+            <ImageButton
+                android:id="@+id/backButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@android:drawable/ic_menu_revert"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:tint="#00E5FF" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="⚙️ SETTINGS"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="#00E5FF"
+                android:gravity="center"
+                android:fontFamily="monospace"
+                android:letterSpacing="0.1" />
+
+            <View android:layout_width="40dp" android:layout_height="40dp" />
+
+        </LinearLayout>
+
+        <!-- Card 1: API & AI -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:backgroundTint="#1A00E5FF"
+            app:cardCornerRadius="16dp"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔑 API & AI MODEL"
+                    android:textColor="#00E5FF"
+                    android:textSize="12sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginBottom="12dp" />
+
+                <EditText
+                    android:id="@+id/apiKeyInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Masukkan Gemini API Key"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#666666"
+                    android:background="@drawable/bg_cyber_card"
+                    android:padding="12dp"
+                    android:fontFamily="monospace"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/apiKeyStatus"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="⚠️ Belum ada API Key"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace" />
+
+                    <Button
+                        android:id="@+id/saveApiKeyButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
+                        android:text="SAVE"
+                        android:textSize="10sp"
+                        android:backgroundTint="#00E5FF"
+                        android:textColor="#0A0A0A" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Card 2: Data Management -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:backgroundTint="#1AFF0266"
+            app:cardCornerRadius="16dp"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💾 DATA MANAGEMENT"
+                    android:textColor="#FF0266"
+                    android:textSize="12sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginBottom="12dp" />
+
+                <Button
+                    android:id="@+id/clearMemoryButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="🧠 HAPUS SEMUA MEMORY"
+                    android:backgroundTint="#FF0266"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    android:layout_marginBottom="8dp" />
+
+                <Button
+                    android:id="@+id/exportChatButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="📤 EKSPOR CHAT HISTORY"
+                    android:backgroundTint="#D500F9"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Card 3: Tampilan -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:backgroundTint="#1AD500F9"
+            app:cardCornerRadius="16dp"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎨 DISPLAY"
+                    android:textColor="#D500F9"
+                    android:textSize="12sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginBottom="12dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🌙 Dark Mode"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/darkModeSwitch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🔤 Font Size"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/fontSizeValue"
+                        android:layout_width="40dp"
+                        android:layout_height="wrap_content"
+                        android:text="14sp"
+                        android:textColor="#00E5FF"
+                        android:textSize="12sp"
+                        android:fontFamily="monospace" />
+
+                    <SeekBar
+                        android:id="@+id/fontSizeSeekBar"
+                        android:layout_width="150dp"
+                        android:layout_height="wrap_content"
+                        android:max="20"
+                        android:progress="4" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Card 4: Suara -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:backgroundTint="#1A00E5FF"
+            app:cardCornerRadius="16dp"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎤 VOICE SETTINGS"
+                    android:textColor="#00E5FF"
+                    android:textSize="12sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Bahasa Voice Input"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:layout_marginBottom="4dp" />
+
+                <Spinner
+                    android:id="@+id/voiceLanguageSpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:entries="@array/voice_languages" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Card 5: About -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:backgroundTint="#1A00E5FF"
+            app:cardCornerRadius="16dp"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ℹ️ ABOUT"
+                    android:textColor="#00E5FF"
+                    android:textSize="12sp"
+                    android:fontFamily="monospace"
+                    android:layout_marginBottom="12dp" />
+
+                <Button
+                    android:id="@+id/aboutButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="SmartEyeX Lite"
+                    android:backgroundTint="#00E5FF"
+                    android:textColor="#0A0A0A"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/versionText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Version 1.0.0"
+                    android:textColor="#666666"
+                    android:textSize="10sp"
+                    android:gravity="center"
+                    android:layout_marginTop="8dp"
+                    android:fontFamily="monospace" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+
+</ScrollView>
