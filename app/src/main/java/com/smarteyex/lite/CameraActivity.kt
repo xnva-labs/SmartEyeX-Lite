@@ -30,6 +30,7 @@ class CameraActivity : AppCompatActivity() {
     private lateinit var captureButton: ImageButton
     private lateinit var backButton: ImageButton
     private lateinit var scanProgress: ProgressBar
+    private lateinit var scanLine: View
 
     private var imageCapture: ImageCapture? = null
     private lateinit var cameraExecutor: ExecutorService
@@ -48,7 +49,7 @@ class CameraActivity : AppCompatActivity() {
         captureButton = findViewById(R.id.captureButton)
         backButton = findViewById(R.id.backButton)
         scanProgress = findViewById(R.id.scanProgress)
-
+        scanLine = findViewById(R.id.scanLine)
         cameraExecutor = Executors.newSingleThreadExecutor()
 
         // Animasi garis scan bergerak
