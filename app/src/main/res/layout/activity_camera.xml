@@ -1,21 +1,83 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000">
 
+    <!-- Preview Kamera -->
     <androidx.camera.view.PreviewView
         android:id="@+id/previewView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Overlay neon tipis biar futuristic -->
+    <!-- Scanning Line Animation (garis scan bergerak) -->
     <View
+        android:id="@+id/scanLine"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#1A00E5FF" />
+        android:layout_height="2dp"
+        android:background="#00E5FF"
+        android:alpha="0.8"
+        android:translationY="0dp" />
 
+    <!-- HUD Overlay (kayak di film) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:background="#80000000">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="● LIVE"
+            android:textColor="#FF0266"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.1" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SMARTEYEX"
+            android:textColor="#00E5FF"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.2" />
+
+    </LinearLayout>
+
+    <!-- Result Panel - Glassmorphism -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:layout_marginHorizontal="24dp">
+
+        <TextView
+            android:id="@+id/resultText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🔍 TARGET ACQUISITION"
+            android:textColor="#00E5FF"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:padding="16dp"
+            android:background="#1A00E5FF"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.05"
+            android:shadowColor="#00E5FF"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:shadowRadius="8" />
+
+    </LinearLayout>
+
+    <!-- Control Panel Bawah -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -24,47 +86,54 @@
         android:padding="24dp"
         android:background="#80000000">
 
-        <TextView
-            android:id="@+id/resultText"
+        <!-- Progress Bar scanning -->
+        <ProgressBar
+            android:id="@+id/scanProgress"
+            style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="📷 Arahkan kamera ke objek..."
-            android:textColor="#00E5FF"
-            android:textSize="16sp"
-            android:gravity="center"
-            android:padding="12dp"
-            android:background="#1A00E5FF"
-            android:layout_marginBottom="24dp"
-            android:fontFamily="monospace" />
+            android:layout_height="2dp"
+            android:layout_marginBottom="16dp"
+            android:progressTint="#00E5FF"
+            android:indeterminate="true"
+            android:visibility="gone" />
 
+        <!-- Tombol -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center">
 
-            <com.google.android.material.button.MaterialButton
+            <ImageButton
                 android:id="@+id/backButton"
                 android:layout_width="56dp"
                 android:layout_height="56dp"
-                android:text="◀"
-                android:textSize="24sp"
-                android:backgroundTint="#FF0266"
-                app:icon="@android:drawable/ic_menu_revert"
-                android:layout_marginEnd="32dp"
-                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.MaterialComponents.Button.Circle" />
+                android:src="@android:drawable/ic_menu_revert"
+                android:background="@drawable/bg_cyber_card"
+                android:tint="#FF0266"
+                android:layout_marginEnd="32dp" />
 
-            <com.google.android.material.button.MaterialButton
+            <ImageButton
                 android:id="@+id/captureButton"
-                android:layout_width="72dp"
-                android:layout_height="72dp"
-                android:text="●"
-                android:textSize="32sp"
-                android:textColor="#FFFFFF"
-                android:backgroundTint="#00E5FF"
-                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.MaterialComponents.Button.Circle" />
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:src="@android:drawable/ic_menu_camera"
+                android:background="@drawable/bg_cyber_card"
+                android:tint="#00E5FF" />
 
         </LinearLayout>
+
+        <!-- Teks instruksi -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="12dp"
+            android:text="▶ TAP TO CAPTURE"
+            android:textColor="#00E5FF"
+            android:textSize="10sp"
+            android:fontFamily="monospace"
+            android:alpha="0.7" />
 
     </LinearLayout>
 
