@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0A0A0A"
+    android:padding="16dp">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+
+        <ImageButton
+            android:id="@+id/backButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@android:drawable/ic_menu_revert"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:tint="#00E5FF" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="⏰ REMINDER"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#00E5FF"
+            android:gravity="center"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.1" />
+
+        <View android:layout_width="40dp" android:layout_height="40dp" />
+
+    </LinearLayout>
+
+    <!-- Input Area -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:backgroundTint="#1A00E5FF"
+        app:cardCornerRadius="16dp"
+        android:padding="16dp"
+        android:layout_marginBottom="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📝 PESAN REMINDER"
+                android:textColor="#00E5FF"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/reminderInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Contoh: Meeting jam 2 siang"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#666666"
+                android:background="@drawable/bg_cyber_card"
+                android:padding="12dp"
+                android:layout_marginBottom="16dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⏰ WAKTU"
+                android:textColor="#00E5FF"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/timeButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="14:30"
+                android:backgroundTint="#D500F9"
+                android:textColor="#FFFFFF"
+                android:layout_marginBottom="16dp" />
+
+            <Button
+                android:id="@+id/addButton"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="➕ TAMBAH REMINDER"
+                android:backgroundTint="#00E5FF"
+                android:textColor="#0A0A0A"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Daftar Reminder -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="📋 REMINDER AKTIF"
+        android:textColor="#00E5FF"
+        android:textSize="12sp"
+        android:fontFamily="monospace"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/emptyText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📭 Belum ada reminder.\nKlik TAMBAH untuk membuat pengingat!"
+        android:textColor="#666666"
+        android:textSize="13sp"
+        android:gravity="center"
+        android:padding="32dp"
+        android:visibility="visible" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/reminderRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="16dp"
+        android:text="💡 Tap lama untuk hapus reminder"
+        android:textColor="#444444"
+        android:textSize="10sp"
+        android:fontFamily="monospace" />
+
+</LinearLayout>
