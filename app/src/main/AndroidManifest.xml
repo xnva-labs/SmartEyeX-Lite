@@ -39,6 +39,10 @@
         <activity
             android:name=".MemoryActivity"
             android:exported="false" />
+       
+        <activity
+    android:name=".ProfileActivity"
+    android:exported="false" />
 
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
