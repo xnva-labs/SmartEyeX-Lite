@@ -1,0 +1,171 @@
+package com.smarteyex.lite
+
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Bundle
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.*
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.google.android.material.button.MaterialButton
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.label.ImageLabeling
+import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
+import com.google.mlkit.vision.objects.ObjectDetection
+import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+
+class CameraActivity : AppCompatActivity() {
+
+    private lateinit var previewView: PreviewView
+    private lateinit var resultText: TextView
+    private lateinit var captureButton: MaterialButton
+    private lateinit var backButton: MaterialButton
+
+    private var imageCapture: ImageCapture? = null
+    private lateinit var cameraExecutor: ExecutorService
+
+    companion object {
+        private const val REQUEST_CODE_PERMISSIONS = 10
+        private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_camera)
+
+        previewView = findViewById(R.id.previewView)
+        resultText = findViewById(R.id.resultText)
+        captureButton = findViewById(R.id.captureButton)
+        backButton = findViewById(R.id.backButton)
+
+        cameraExecutor = Executors.newSingleThreadExecutor()
+
+        // Cek dan minta izin kamera
+        if (allPermissionsGranted()) {
+            startCamera()
+        } else {
+            ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
+        }
+
+        captureButton.setOnClickListener {
+            takePhoto()
+        }
+
+        backButton.setOnClickListener {
+            finish()
+        }
+    }
+
+    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
+        ContextCompat.checkSelfPermission(baseContext, it) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun startCamera() {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        cameraProviderFuture.addListener({
+            val cameraProvider = cameraProviderFuture.get()
+
+            val preview = Preview.Builder().build().also {
+                it.setSurfaceProvider(previewView.surfaceProvider)
+            }
+
+            imageCapture = ImageCapture.Builder()
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                .build()
+
+            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+            try {
+                cameraProvider.unbindAll()
+                cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
+            } catch (e: Exception) {
+                Toast.makeText(this, "Gagal buka kamera: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun takePhoto() {
+        val imageCapture = imageCapture ?: return
+
+        imageCapture.takePicture(ContextCompat.getMainExecutor(this), object : ImageCapture.OnImageCapturedCallback() {
+            override fun onCaptureSuccess(image: ImageProxy) {
+                analyzeImage(image)
+                image.close()
+            }
+
+            override fun onError(exception: ImageCaptureException) {
+                Toast.makeText(this@CameraActivity, "Gagal ambil foto: ${exception.message}", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+    private fun analyzeImage(imageProxy: ImageProxy) {
+        val mediaImage = imageProxy.image
+        if (mediaImage != null) {
+            val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+
+            // Gunakan Object Detection + Classification (lebih akurat)
+            val options = ObjectDetectorOptions.Builder()
+                .setDetectorMode(ObjectDetectorOptions.SINGLE_IMAGE_MODE)
+                .enableClassification()
+                .build()
+
+            val objectDetector = ObjectDetection.getClient(options)
+
+            objectDetector.process(inputImage)
+                .addOnSuccessListener { objects ->
+                    if (objects.isNotEmpty()) {
+                        val labels = objects.mapNotNull { obj ->
+                            obj.labels.firstOrNull()?.text?.let { label ->
+                                val confidence = (obj.labels.firstOrNull()?.confidence ?: 0f) * 100
+                                "$label (${confidence.toInt()}%)"
+                            }
+                        }
+                        resultText.text = "🔍 Terdeteksi: ${labels.joinToString(", ")}"
+                    } else {
+                        // Fallback ke image labeling
+                        val labeler = ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS)
+                        labeler.process(inputImage)
+                            .addOnSuccessListener { labels ->
+                                if (labels.isNotEmpty()) {
+                                    val topLabel = labels[0].text
+                                    val confidence = (labels[0].confidence * 100).toInt()
+                                    resultText.text = "🔍 Kemungkinan: $topLabel ($confidence%)"
+                                } else {
+                                    resultText.text = "🔍 Tidak bisa mengenali objek"
+                                }
+                            }
+                            .addOnFailureListener { e ->
+                                resultText.text = "⚠️ Error analisis: ${e.message}"
+                            }
+                    }
+                }
+                .addOnFailureListener { e ->
+                    resultText.text = "⚠️ Gagal deteksi objek: ${e.message}"
+                }
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CODE_PERMISSIONS) {
+            if (allPermissionsGranted()) {
+                startCamera()
+            } else {
+                Toast.makeText(this, "Izin kamera ditolak. Fitur kamera tidak bisa digunakan.", Toast.LENGTH_SHORT).show()
+                finish()
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        cameraExecutor.shutdown()
+    }
+}
