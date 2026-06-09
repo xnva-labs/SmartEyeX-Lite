@@ -35,6 +35,10 @@
             android:name=".MainActivity"
             android:exported="false"
             android:theme="@style/Theme.SmartEyeX" />
+        
+        <activity
+            android:name=".MemoryActivity"
+            android:exported="false" />
 
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
