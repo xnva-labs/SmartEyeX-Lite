@@ -52,13 +52,17 @@ class CameraActivity : AppCompatActivity() {
         cameraExecutor = Executors.newSingleThreadExecutor()
 
         // Animasi garis scan bergerak
-        val scanLine = findViewById<View>(R.id.scanLine)
-        scanLine.animate()
-            .translationY(1500f)
-            .setDuration(3000)
-            .setRepeatCount(ValueAnimator.INFINITE)
-            .setRepeatMode(ValueAnimator.REVERSE)
-            .start()
+val animator = ValueAnimator.ofFloat(0f, 1500f)
+
+animator.duration = 3000
+animator.repeatCount = ValueAnimator.INFINITE
+animator.repeatMode = ValueAnimator.REVERSE
+
+animator.addUpdateListener {
+    scanLine.translationY = it.animatedValue as Float
+}
+
+animator.start()
 
         // Cek dan minta izin kamera
         if (allPermissionsGranted()) {
