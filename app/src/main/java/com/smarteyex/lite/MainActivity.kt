@@ -74,9 +74,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     inner class ChatAdapter(private val messages: List<ChatMessage>) :
         RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-        
-        }
-
         override fun getItemViewType(position: Int): Int {
             return if (messages[position].isUser) TYPE_USER else TYPE_AI
         }
