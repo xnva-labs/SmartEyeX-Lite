@@ -12,7 +12,6 @@ import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.*
-import com.smarteyex.lite.BuildConfig
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -54,7 +53,7 @@ class SettingsActivity : AppCompatActivity() {
         aboutButton = findViewById(R.id.aboutButton)
         versionText = findViewById(R.id.versionText)
 
-        versionText.text = "Version ${BuildConfig.VERSION_NAME}"
+        versionText.text = "Version 1.0.0"
     }
 
     private fun loadSettings() {
