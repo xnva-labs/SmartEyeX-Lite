@@ -12,6 +12,7 @@ import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.*
+import com.smarteyex.lite.BuildConfig
 
 class SettingsActivity : AppCompatActivity() {
 
