@@ -18,6 +18,7 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
+import android.view.ViewGroup
 
 class JournalActivity : AppCompatActivity() {
 
