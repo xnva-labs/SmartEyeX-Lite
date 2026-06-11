@@ -230,7 +230,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             "Santai" -> "Halo $userName! Ada yang bisa gw bantu hari ini? Santai aja ya!"
             else -> "Halo $userName! 🚀 SmartEyeX siap jadi partner hidup lo. Ayo ngobrol, belajar, atau eksplor bareng! Yang kita bicarakan bakal gw ingat semua."
         }
-        addMessage(ChatMessage(content = welcome, is user = false))
+        addMessage(ChatMessage(content = welcome, isUser = false))
         speak(welcome)
     }
 
@@ -242,10 +242,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun sendMessage(content: String) {
-        addMessage(ChatMessage(content = content, is user = true))
+        addMessage(ChatMessage(content = content, isUser = true))
         inputMessage.text.clear()
 
-        val loadingMessage = ChatMessage(content = "...", is user = false)
+        val loadingMessage = ChatMessage(content = "...", isUser = false)
         chatMessages.add(loadingMessage)
         chatAdapter.notifyItemInserted(chatMessages.size - 1)
 
@@ -293,7 +293,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 runOnUiThread {
                     removeLoadingMessage()
                     val errorMsg = "Maaf $userName, gw error: ${e.message}. Cek API key atau koneksi internet ya!"
-                    addMessage(ChatMessage(content = errorMsg, is user = false))
+                    addMessage(ChatMessage(content = errorMsg, isUser = false))
                     speak(errorMsg)
                 }
             }
@@ -314,7 +314,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
                 runOnUiThread {
                     removeLoadingMessage()
-                    addMessage(ChatMessage(content = reply, is user = false))
+                    addMessage(ChatMessage(content = reply, isUser = false))
                     speak(reply)
                     learnFromConversation(userMessage, reply)
                 }
