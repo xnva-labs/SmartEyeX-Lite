@@ -187,6 +187,7 @@ animator.start()
                     .addOnSuccessListener { labels ->
 
                         runOnUiThread {
+    scanProgress.visibility = View.GONE
                             if (labels.isNotEmpty()) {
 
                                 val topLabel = labels[0].text
@@ -208,6 +209,7 @@ animator.start()
                     .addOnFailureListener { e ->
 
                         runOnUiThread {
+   scanProgress.visibility = View.GONE
                             resultText.text =
                                 "⚠️ ERROR: ${e.message}"
                         }
