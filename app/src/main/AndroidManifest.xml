@@ -56,6 +56,10 @@
     android:name=".ReminderActivity"
     android:exported="false" />
 
+        <activity
+    android:name=".CameraActivity"
+    android:exported="false" />
+
         <receiver
     android:name=".ReminderReceiver"
     android:exported="false" />
