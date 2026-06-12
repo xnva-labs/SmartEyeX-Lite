@@ -174,9 +174,6 @@ animator.start()
     imageProxy.close()
 
 } else {
-    runOnUiThread {
-        scanProgress.visibility = View.VISIBLE
-    }
 
     val labeler =
         ImageLabeling.getClient(
