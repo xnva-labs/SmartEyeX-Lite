@@ -115,7 +115,6 @@ animator.start()
         imageCapture.takePicture(ContextCompat.getMainExecutor(this), object : ImageCapture.OnImageCapturedCallback() {
             override fun onCaptureSuccess(image: ImageProxy) {
                 analyzeImage(image)
-                image.close()
             }
 
             override fun onError(exception: ImageCaptureException) {
@@ -125,59 +124,106 @@ animator.start()
     }
 
     private fun analyzeImage(imageProxy: ImageProxy) {
-        // Tampilkan progress bar
-        runOnUiThread {
-            scanProgress.visibility = View.VISIBLE
-            resultText.text = "🔍 MENGANALISIS..."
+    runOnUiThread {
+        scanProgress.visibility = View.VISIBLE
+        resultText.text = "🔍 MENGANALISIS..."
+    }
+
+    val mediaImage = imageProxy.image
+
+    if (mediaImage == null) {
+        imageProxy.close()
+        return
+    }
+
+    val inputImage = InputImage.fromMediaImage(
+        mediaImage,
+        imageProxy.imageInfo.rotationDegrees
+    )
+
+    val options = ObjectDetectorOptions.Builder()
+        .setDetectorMode(ObjectDetectorOptions.SINGLE_IMAGE_MODE)
+        .enableClassification()
+        .build()
+
+    val objectDetector = ObjectDetection.getClient(options)
+
+    objectDetector.process(inputImage)
+        .addOnSuccessListener { objects ->
+
+            runOnUiThread {
+                scanProgress.visibility = View.GONE
+            }
+
+            if (objects.isNotEmpty()) {
+
+    val labels = objects.mapNotNull { obj ->
+        obj.labels.firstOrNull()?.text?.let { label ->
+            val confidence =
+                (obj.labels.firstOrNull()?.confidence ?: 0f) * 100
+
+            "$label (${confidence.toInt()}%)"
         }
+    }
 
-        val mediaImage = imageProxy.image
-        if (mediaImage != null) {
-            val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+    runOnUiThread {
+        resultText.text =
+            "🔍 TERDETEKSI: ${labels.joinToString(", ")}"
+    }
 
-            val options = ObjectDetectorOptions.Builder()
-                .setDetectorMode(ObjectDetectorOptions.SINGLE_IMAGE_MODE)
-                .enableClassification()
-                .build()
+    imageProxy.close()
 
-            val objectDetector = ObjectDetection.getClient(options)
+} else {
+    runOnUiThread {
+        scanProgress.visibility = View.VISIBLE
+    }
 
-            objectDetector.process(inputImage)
-                .addOnSuccessListener { objects ->
-                    runOnUiThread {
-                        scanProgress.visibility = View.GONE
-                        if (objects.isNotEmpty()) {
-                            val labels = objects.mapNotNull { obj ->
-                                obj.labels.firstOrNull()?.text?.let { label ->
-                                    val confidence = (obj.labels.firstOrNull()?.confidence ?: 0f) * 100
-                                    "$label (${confidence.toInt()}%)"
-                                }
+    val labeler =
+        ImageLabeling.getClient(
+            ImageLabelerOptions.DEFAULT_OPTIONS
+        )
+
+    labeler.process(inputImage)
+                    .addOnSuccessListener { labels ->
+
+                        runOnUiThread {
+                            if (labels.isNotEmpty()) {
+
+                                val topLabel = labels[0].text
+                                val confidence =
+                                    (labels[0].confidence * 100).toInt()
+
+                                resultText.text =
+                                    "🔍 KEMUNGKINAN: $topLabel ($confidence%)"
+
+                            } else {
+
+                                resultText.text =
+                                    "🔍 TIDAK TERDETEKSI"
                             }
-                            resultText.text = "🔍 TERDETEKSI: ${labels.joinToString(", ")}"
-                        } else {
-                            val labeler = ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS)
-                            labeler.process(inputImage)
-                                .addOnSuccessListener { labels ->
-                                    if (labels.isNotEmpty()) {
-                                        val topLabel = labels[0].text
-                                        val confidence = (labels[0].confidence * 100).toInt()
-                                        resultText.text = "🔍 KEMUNGKINAN: $topLabel ($confidence%)"
-                                    } else {
-                                        resultText.text = "🔍 TIDAK TERDETEKSI"
-                                    }
-                                }
-                                .addOnFailureListener { e ->
-                                    resultText.text = "⚠️ ERROR: ${e.message}"
-                                }
                         }
+
+                        imageProxy.close()
                     }
-                }
-                .addOnFailureListener { e ->
-                    runOnUiThread {
-                        scanProgress.visibility = View.GONE
-                        resultText.text = "⚠️ GAGAL: ${e.message}"
+                    .addOnFailureListener { e ->
+
+                        runOnUiThread {
+                            resultText.text =
+                                "⚠️ ERROR: ${e.message}"
+                        }
+
+                        imageProxy.close()
                     }
-                }
+            }
+        }
+        .addOnFailureListener { e ->
+
+            runOnUiThread {
+                scanProgress.visibility = View.GONE
+                resultText.text = "⚠️ GAGAL: ${e.message}"
+            }
+
+            imageProxy.close()
         }
     }
 
