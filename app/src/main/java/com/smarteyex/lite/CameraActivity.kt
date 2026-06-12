@@ -215,7 +215,6 @@ animator.start()
                     }
             }
         }
-}
         .addOnFailureListener { e ->
 
             runOnUiThread {
