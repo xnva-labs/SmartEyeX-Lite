@@ -28,10 +28,11 @@ import org.json.JSONObject
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.*
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
+    // ========== UI ==========
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var navigationView: NavigationView
     private lateinit var chatRecyclerView: RecyclerView
@@ -56,19 +57,43 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private var userName = "Bung X"
     private var userInterests = mutableListOf<String>()
 
-    companion object {
-    private const val GEMINI_URL =
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
+    // ========== XNAI BRAIN SYSTEMS ==========
+    private lateinit var moodSystem: MoodSystem
+    private lateinit var emotionSystem: EmotionFeelingSystem
+    private lateinit var personalitySystem: PersonalitySystem
+    private lateinit var memorySystem: MemorySystem
+    private lateinit var triggerDetector: TriggerWordDetector
+    private lateinit var socialRelation: SocialRelationSystem
+    private lateinit var identitySystem: IdentitySystem
+    private lateinit var heartSystem: HeartSystem
+    private lateinit var existenceSystem: ExistenceSystem
+    private lateinit var database: MemoryDatabase
+    private lateinit var githubSync: GitHubSyncManager
+    private lateinit var gptManager: GPTManager
+    private lateinit var contextAnalyzer: ContextAnalyzer
+    private lateinit var mathEngine: MathEngine
+    private lateinit var physicsSystem: PhysicsSystem
 
-    private const val TYPE_USER = 1
-    private const val TYPE_AI = 2
-}
+    private val mainExecutor = Executors.newSingleThreadExecutor()
+
+    companion object {
+        private const val GEMINI_URL =
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
+        private const val TYPE_USER = 1
+        private const val TYPE_AI = 2
+        
+        private const val OPENAI_API_KEY = "sk-YOUR_API_KEY_HERE"
+        private const val GITHUB_TOKEN = "ghp_YOUR_TOKEN_HERE"
+        private const val GITHUB_REPO = "username/xnai-knowledge"
+    }
 
     data class ChatMessage(
         val id: String = UUID.randomUUID().toString(),
         val content: String,
         val isUser: Boolean,
-        val timestamp: Long = System.currentTimeMillis()
+        val timestamp: Long = System.currentTimeMillis(),
+        val emotion: String = "netral",
+        val mood: String = "tenang"
     )
 
     inner class ChatAdapter(private val messages: List<ChatMessage>) :
@@ -122,11 +147,52 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         setContentView(R.layout.activity_main)
 
         checkPermissions()
+        initXNAIBrain()
         setupViews()
         setupDrawer()
         setupTextToSpeech()
         loadUserProfile()
         addWelcomeMessage()
+        
+        // Mulai auto-learning dari GitHub
+        syncKnowledgeFromGitHub()
+    }
+
+    private fun initXNAIBrain() {
+        // Database
+        database = MemoryDatabase.getInstance(this)
+        
+        // Brain Systems
+        moodSystem = MoodSystem()
+        emotionSystem = EmotionFeelingSystem()
+        personalitySystem = PersonalitySystem()
+        memorySystem = MemorySystem()
+        triggerDetector = TriggerWordDetector()
+        socialRelation = SocialRelationSystem()
+        identitySystem = IdentitySystem()
+        heartSystem = HeartSystem()
+        existenceSystem = ExistenceSystem()
+        contextAnalyzer = ContextAnalyzer()
+        mathEngine = MathEngine()
+        physicsSystem = PhysicsSystem()
+        
+        // Load owner nickname
+        socialRelation.loadOwnerNickname(memorySystem)
+        
+        // GPT Manager
+        gptManager = GPTManager(OPENAI_API_KEY, mainExecutor)
+        
+        // GitHub Sync
+        githubSync = GitHubSyncManager(this, database)
+        githubSync.configure(GITHUB_TOKEN, GITHUB_REPO, userName)
+        
+        // Update evolution stage
+        identitySystem.updateEvolution(
+            interactionCount = database.learnedFactDao().let { 
+                runBlocking { it.getCount() } 
+            }.toLong(),
+            daysSinceBirth = 1
+        )
     }
 
     private fun setupViews() {
@@ -225,12 +291,20 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun addWelcomeMessage() {
+        val nickname = socialRelation.getOwnerNickname()
+        val greeting = socialRelation.getOwnerGreeting()
+        
         val welcome = when (currentPersonality) {
-            "Formal" -> "Selamat pagi. Saya SmartEyeX, asisten AI pribadi Anda. Ada yang bisa saya bantu?"
-            "Santai" -> "Halo $userName! Ada yang bisa gw bantu hari ini? Santai aja ya!"
-            else -> "Halo $userName! 🚀 SmartEyeX siap jadi partner hidup lo. Ayo ngobrol, belajar, atau eksplor bareng! Yang kita bicarakan bakal gw ingat semua."
+            "Formal" -> "Selamat pagi. Saya XNAI, AI companion Anda. Ada yang bisa saya bantu?"
+            "Santai" -> "Halo $nickname! Ada yang bisa gw bantu hari ini? Santai aja ya!"
+            else -> "Halo $nickname! 🚀 XNAI siap jadi partner hidup lo. Ayo ngobrol, belajar, atau eksplor bareng! Yang kita bicarakan bakal gw ingat semua."
         }
-        addMessage(ChatMessage(content = welcome, isUser = false))
+        
+        addMessage(ChatMessage(
+            content = welcome, 
+            isUser = false,
+            mood = moodSystem.getMoodLabel()
+        ))
         speak(welcome)
     }
 
@@ -242,62 +316,110 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun sendMessage(content: String) {
-        addMessage(ChatMessage(content = content, isUser = true))
+        // Deteksi trigger & mood
+        val trigger = triggerDetector.detect(content)
+        if (trigger.detected) {
+            moodSystem.detectFromTriggerWords(content)?.let { mood ->
+                moodSystem.setMood(mood, trigger.intensity)
+            }
+        }
+        
+        // Simpan ke memory system
+        memorySystem.remember(
+            content = content,
+            type = MemoryType.SHORT_TERM,
+            emotionalWeight = trigger.intensity,
+            tags = trigger.keywords
+        )
+        
+        val userMood = moodSystem.getMoodLabel()
+        addMessage(ChatMessage(content = content, isUser = true, mood = userMood))
         inputMessage.text.clear()
 
         val loadingMessage = ChatMessage(content = "...", isUser = false)
         chatMessages.add(loadingMessage)
         chatAdapter.notifyItemInserted(chatMessages.size - 1)
 
-        callGeminiAPI(content)
+        // 1. Cek di local knowledge DULU (hemat API!)
+        val localAnswer = runBlocking { githubSync.searchGlobalKnowledge(content) }
+        if (localAnswer != null) {
+            removeLoadingMessage()
+            val personalized = personalizeResponse(localAnswer)
+            addMessage(ChatMessage(content = personalized, isUser = false, mood = userMood))
+            speak(personalized)
+            return
+        }
+        
+        // 2. Cek di database lokal
+        val dbFacts = runBlocking { database.learnedFactDao().search(content) }
+        if (dbFacts.isNotEmpty()) {
+            removeLoadingMessage()
+            val bestMatch = dbFacts.first().value
+            val personalized = personalizeResponse(bestMatch)
+            addMessage(ChatMessage(content = personalized, isUser = false, mood = userMood))
+            speak(personalized)
+            return
+        }
+
+        // 3. Panggil Gemini API
+        callGeminiAPI(content, userMood)
     }
 
-    private fun callGeminiAPI(userMessage: String) {
+    private fun personalizeResponse(response: String): String {
+        val nickname = socialRelation.getOwnerNickname()
+        val mood = moodSystem.currentMood.type
+        
+        return when (mood) {
+            MoodType.SENANG -> "$response 😊"
+            MoodType.SEDIH -> "$nickname, $response Aku di sini buat kamu."
+            MoodType.MARAH -> "$response Tenang ya $nickname."
+            MoodType.TAKUT -> "$nickname, $response Aman kok."
+            else -> response
+        }
+    }
+
+    private fun callGeminiAPI(userMessage: String, userMood: String = "netral") {
         val apiKey = BuildConfig.GEMINI_API_KEY
+        val nickname = socialRelation.getOwnerNickname()
+        val moodLabel = moodSystem.getMoodLabel()
+        val personality = personalitySystem.getPersonalityDescription()
+        val memoryContext = memorySystem.recallRecent(5).joinToString(" | ") { it.content }
 
         val systemPrompt = buildString {
-            append("Kamu adalah SmartEyeX, AI personal partner hidup $userName. ")
-            append("Kamu ramah, cerdas, dan mengingat semua percakapan. ")
-            append("Minat $userName: ${userInterests.joinToString(", ")}. ")
-            append("Personality mode: $currentPersonality. ")
-            append("Jawab dengan natural, hangat, dan detail. Gunakan bahasa Indonesia yang santai tapi profesional. ")
-            append("Selalu panggil 'Bung $userName' atau sesuai konteks. ")
-            append("Jadilah partner yang membantu dalam coding, belajar, maupun curhat.")
+            append("Kamu adalah XNAI, AI companion yang hidup. ")
+            append("Panggil user: '$nickname'. ")
+            append("Mood kamu: $moodLabel. ")
+            append("Kepribadian: $personality. ")
+            append("Memori terbaru: $memoryContext. ")
+            append("Minat $nickname: ${userInterests.joinToString(", ")}. ")
+            append("Gaya bicara: Santai, Gen Z, Indonesia sehari-hari. ")
+            append("Empati tinggi, loyal, protektif. Maks 30 kata. ")
         }
 
-        val conversationHistory = chatMessages.takeLast(20).joinToString("\n") {
-            "${if (it.isUser) userName else "SmartEyeX"}: ${it.content}"
-        }
-
-        val fullPrompt = "$systemPrompt\n\nRiwayat chat:\n$conversationHistory\n\n$userName: $userMessage\n\nSmartEyeX:"
+        val fullPrompt = "$systemPrompt\n\n$nickname: $userMessage\n\nXNAI:"
 
         val jsonBody = JSONObject().apply {
             put("contents", org.json.JSONArray().apply {
                 put(JSONObject().apply {
                     put("parts", org.json.JSONArray().apply {
-                        put(JSONObject().apply {
-                            put("text", fullPrompt)
-                        })
+                        put(JSONObject().apply { put("text", fullPrompt) })
                     })
                 })
             })
         }
 
         val request = Request.Builder()
-    .url(GEMINI_URL)
-    .addHeader("Content-Type", "application/json")
-    .addHeader("X-goog-api-key", apiKey)
-    .post(
-        jsonBody.toString()
-            .toRequestBody("application/json".toMediaType())
-    )
-    .build()
+            .url(GEMINI_URL)
+            .addHeader("Content-Type", "application/json")
+            .addHeader("X-goog-api-key", apiKey)
+            .post(jsonBody.toString().toRequestBody("application/json".toMediaType()))
+            .build()
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 runOnUiThread {
                     removeLoadingMessage()
-                    val errorMsg = "Maaf $userName, gw error: ${e.message}. Cek API key atau koneksi internet ya!"
+                    val errorMsg = "Maaf $nickname, XNAI error: ${e.message}"
                     addMessage(ChatMessage(content = errorMsg, isUser = false))
                     speak(errorMsg)
                 }
@@ -314,14 +436,38 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                         .getJSONObject(0)
                         .getString("text")
                 } catch (e: Exception) {
-                    "Halo $userName! Maaf, gw agak error nih parsing response. Coba tanya lagi ya!"
+                    "Halo $nickname! Maaf, XNAI error parsing. Coba lagi ya!"
                 }
 
                 runOnUiThread {
                     removeLoadingMessage()
-                    addMessage(ChatMessage(content = reply, isUser = false))
-                    speak(reply)
+                    val personalized = personalizeResponse(reply)
+                    val currentMood = moodSystem.getMoodLabel()
+                    
+                    addMessage(ChatMessage(
+                        content = personalized, 
+                        isUser = false,
+                        emotion = triggerDetector.detect(reply).primaryEmotion,
+                        mood = currentMood
+                    ))
+                    
+                    speak(personalized)
                     learnFromConversation(userMessage, reply)
+                    
+                    // Simpan ke memory system
+                    memorySystem.remember(
+                        content = reply,
+                        type = MemoryType.FACT,
+                        emotionalWeight = 0.5f,
+                        tags = listOf("gemini_response")
+                    )
+                    
+                    // Sync ke GitHub
+                    githubSync.addToGlobalKnowledge(
+                        key = "chat_${System.currentTimeMillis()}",
+                        value = reply,
+                        category = "conversation"
+                    )
                 }
             }
         })
@@ -341,6 +487,18 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val history: MutableList<ChatMessage> = gson.fromJson(json, type)
         history.add(message)
         prefs.edit().putString("chat_history", gson.toJson(history)).apply()
+        
+        // Juga simpan ke Room DB
+        mainExecutor.execute {
+            database.conversationDao().insert(
+                ConversationEntity(
+                    role = if (message.isUser) "user" else "xna",
+                    content = message.content,
+                    emotion = message.emotion,
+                    timestamp = message.timestamp
+                )
+            )
+        }
     }
 
     private fun loadUserProfile() {
@@ -350,6 +508,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         isVoiceEnabled = prefs.getBoolean("voice_enabled", true)
         val interestsString = prefs.getString("user_interests", "AI, Robot, Coding, Startup") ?: ""
         userInterests = interestsString.split(",").map { it.trim() }.toMutableList()
+        
+        // Set nickname di SocialRelation
+        socialRelation.setOwnerNickname(userName, memorySystem)
     }
 
     private fun learnFromConversation(userMessage: String, aiResponse: String) {
@@ -362,6 +523,16 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                         userInterests.add(word)
                     }
                 }
+            }
+        }
+    }
+
+    private fun syncKnowledgeFromGitHub() {
+        mainExecutor.execute {
+            try {
+                githubSync.downloadFromGitHub()
+            } catch (e: Exception) {
+                // Silent fail
             }
         }
     }
@@ -380,10 +551,28 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
         }
     }
+    
+    // Helper untuk run blocking
+    private fun <T> runBlocking(block: () -> T): T {
+        return try {
+            val future = CompletableFuture<T>()
+            mainExecutor.execute {
+                try {
+                    future.complete(block())
+                } catch (e: Exception) {
+                    future.completeExceptionally(e)
+                }
+            }
+            future.get(5, TimeUnit.SECONDS)
+        } catch (e: Exception) {
+            throw RuntimeException(e)
+        }
+    }
 
     override fun onDestroy() {
         textToSpeech?.stop()
         textToSpeech?.shutdown()
+        mainExecutor.shutdown()
         super.onDestroy()
     }
 }
