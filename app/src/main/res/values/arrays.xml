@@ -3,9 +3,9 @@
     <!-- Personality Options -->
     <string-array name="personality_entries">
         <item>🤖 SmartEyeX (Default)</item>
-        <item>😊 Santai & Humoris</item>
-        <item>🎓 Formal & Profesional</item>
-        <item>🧠 Logis & Analitis</item>
+        <item>😊 Santai &amp; Humoris</item>
+        <item>🎓 Formal &amp; Profesional</item>
+        <item>🧠 Logis &amp; Analitis</item>
     </string-array>
     <string-array name="personality_values">
         <item>SmartEyeX</item>
