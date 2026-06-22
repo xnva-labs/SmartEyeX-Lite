@@ -1,384 +1,439 @@
 package com.smarteyex.lite
 
 import android.Manifest
-import android.animation.ValueAnimator
 import android.content.pm.PackageManager
-import android.graphics.*
+import android.graphics.Bitmap
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.speech.tts.TextToSpeech
-import android.util.Base64
+import android.os.SystemClock
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.*
-import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.objects.ObjectDetection
-import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
-import org.json.JSONArray
-import org.json.JSONObject
-import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlin.concurrent.thread
 
-class CameraActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
+class CameraActivity : AppCompatActivity() {
 
+    // ========== UI ==========
     private lateinit var previewView: PreviewView
     private lateinit var resultText: TextView
+    private lateinit var moodText: TextView
+    private lateinit var knowledgeText: TextView
     private lateinit var captureButton: ImageButton
+    private lateinit var micButton: ImageButton
     private lateinit var backButton: ImageButton
     private lateinit var scanProgress: ProgressBar
     private lateinit var scanLine: View
     private lateinit var realtimeToggle: ToggleButton
 
-    private var imageCapture: ImageCapture? = null
-    private var imageAnalysis: ImageAnalysis? = null
-    private lateinit var cameraExecutor: ExecutorService
-    private var tts: TextToSpeech? = null
+    // ========== MANAGERS ==========
+    private var cameraManager: CameraManager? = null
+    private var motionDetector: MotionDetector? = null
+    private var objectDetector: ObjectDetector? = null
+    private var gptManager: GPTManager? = null
+    private var ttsManager: TTSManager? = null
+    private var sttManager: STTManager? = null
+    private var safetyChecker: SafetyChecker? = null
+    private var contextAnalyzer: ContextAnalyzer? = null
+    private var triggerDetector: TriggerWordDetector? = null
+    private var githubSync: GitHubSyncManager? = null
+    private var database: MemoryDatabase? = null
 
+    // ========== BRAIN SYSTEMS ==========
+    private var moodSystem: MoodSystem? = null
+    private var memorySystem: MemorySystem? = null
+    private var personalitySystem: PersonalitySystem? = null
+    private var socialRelationSystem: SocialRelationSystem? = null
+
+    // ========== STATE ==========
     private var isRealtimeMode = false
-    private var lastApiCall = 0L
+    private var lastGptCall = 0L
     private var lastSpeech = 0L
-    private var lastDetected = ""
-    private var memoryContext = ""
+    private var lastUserInteraction = System.currentTimeMillis()
+    private val mainExecutor = Executors.newSingleThreadExecutor()
 
     companion object {
         private const val REQUEST_CODE_PERMISSIONS = 10
-        private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
-        private const val OPENAI_KEY = "sk-YOUR_API_KEY_HERE"
+        private val REQUIRED_PERMISSIONS = arrayOf(
+            Manifest.permission.CAMERA,
+            Manifest.permission.RECORD_AUDIO
+        )
+        private const val OPENAI_API_KEY = "sk-YOUR_API_KEY_HERE"
+        private const val GITHUB_TOKEN = "ghp_YOUR_TOKEN_HERE"
+        private const val GITHUB_REPO = "username/xnai-knowledge"
     }
+
+    // ========== LIFECYCLE ==========
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_camera)
 
+        initUI()
+        initManagers()
+        checkPermissions()
+    }
+
+    private fun initUI() {
         previewView = findViewById(R.id.previewView)
         resultText = findViewById(R.id.resultText)
+        moodText = findViewById(R.id.moodText)
+        knowledgeText = findViewById(R.id.knowledgeText)
         captureButton = findViewById(R.id.captureButton)
+        micButton = findViewById(R.id.micButton)
         backButton = findViewById(R.id.backButton)
         scanProgress = findViewById(R.id.scanProgress)
         scanLine = findViewById(R.id.scanLine)
         realtimeToggle = findViewById(R.id.realtimeToggle)
-        cameraExecutor = Executors.newSingleThreadExecutor()
-        tts = TextToSpeech(this, this)
 
-        val animator = ValueAnimator.ofFloat(0f, 1500f)
-        animator.duration = 3000
-        animator.repeatCount = ValueAnimator.INFINITE
-        animator.repeatMode = ValueAnimator.REVERSE
-        animator.addUpdateListener { scanLine.translationY = it.animatedValue as Float }
-        animator.start()
-
-        if (allPermissionsGranted()) startCamera()
-        else ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
-
-        captureButton.setOnClickListener {
-            if (!isRealtimeMode) takePhoto()
-        }
+        captureButton.setOnClickListener { takePhoto() }
+        micButton.setOnClickListener { toggleListening() }
+        backButton.setOnClickListener { finish() }
 
         realtimeToggle.setOnCheckedChangeListener { _, on ->
-            isRealtimeMode = on
-            if (on) {
-                startRealtime()
-                resultText.text = "👁️ SIAGA AKTIF"
-                captureButton.visibility = View.GONE
-                scanLine.visibility = View.GONE
-            } else {
-                stopRealtime()
-                resultText.text = "📷 Mode Foto"
-                captureButton.visibility = View.VISIBLE
-                scanLine.visibility = View.VISIBLE
-            }
-        }
-
-        backButton.setOnClickListener {
-            stopRealtime()
-            tts?.stop()
-            finish()
+            if (on) startRealtimeMode() else stopRealtimeMode()
         }
     }
 
-    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
-        ContextCompat.checkSelfPermission(baseContext, it) == PackageManager.PERMISSION_GRANTED
-    }
+    private fun initManagers() {
+        // Database
+        database = MemoryDatabase.getInstance(this)
 
-    private fun startCamera() {
-        val provider = ProcessCameraProvider.getInstance(this)
-        provider.addListener({
-            val cameraProvider = provider.get()
-            val preview = Preview.Builder().build().also {
-                it.setSurfaceProvider(previewView.surfaceProvider)
-            }
-            imageCapture = ImageCapture.Builder()
-                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                .build()
-            imageAnalysis = ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
-                .build()
-            try {
-                cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageCapture, imageAnalysis!!)
-            } catch (e: Exception) {
-                Toast.makeText(this, "Gagal kamera: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-        }, ContextCompat.getMainExecutor(this))
-    }
+        // Brain Systems
+        moodSystem = MoodSystem()
+        memorySystem = MemorySystem()
+        personalitySystem = PersonalitySystem()
+        socialRelationSystem = SocialRelationSystem()
 
-    // ==================== REALTIME ====================
-
-    private fun startRealtime() {
-        isRealtimeMode = true
-        lastDetected = ""
-        memoryContext = ""
-        imageAnalysis?.setAnalyzer(cameraExecutor) { proxy ->
-            if (!isRealtimeMode) { proxy.close(); return@setAnalyzer }
-            val now = System.currentTimeMillis()
-            if (now - lastApiCall < 3000) { proxy.close(); return@setAnalyzer }
-            lastApiCall = now
-            val bmp = proxyToBitmap(proxy)
-            if (bmp != null) {
-                detectAndReason(proxy, bmp)
+        // Load owner nickname dari memory
+        socialRelationSystem?.let { social ->
+            memorySystem?.let { mem ->
+                social.loadOwnerNickname(mem)
             }
-            proxy.close()
         }
-    }
 
-    private fun stopRealtime() {
-        isRealtimeMode = false
-        imageAnalysis?.clearAnalyzer()
-    }
+        // Camera
+        cameraManager = CameraManager(this, this, previewView)
+        cameraManager?.initialize()
 
-    private fun detectAndReason(proxy: ImageProxy, bmp: Bitmap) {
-        val mediaImage = proxy.image ?: return
-        val inputImage = InputImage.fromMediaImage(mediaImage, proxy.imageInfo.rotationDegrees)
-        val detector = ObjectDetection.getClient(
-            ObjectDetectorOptions.Builder()
-                .setDetectorMode(ObjectDetectorOptions.SINGLE_IMAGE_MODE)
-                .enableClassification()
-                .build()
-        )
-        detector.process(inputImage)
-            .addOnSuccessListener { objects ->
-                val labels = objects.flatMap { it.labels }.map { it.text }.distinct()
-                val currentDetected = labels.joinToString(", ")
-                
-                if (currentDetected.isNotEmpty() && currentDetected != lastDetected) {
-                    lastDetected = currentDetected
-                    val now = System.currentTimeMillis()
-                    if (now - lastSpeech > 5000) {
-                        lastSpeech = now
-                        thread {
-                            callOpenAI(bmp, labels)
-                        }
-                    }
-                }
-                runOnUiThread {
-                    if (currentDetected.isNotEmpty() && !resultText.text.toString().startsWith("🤖"))
-                        resultText.text = "👁️ $currentDetected"
-                }
-            }
-    }
+        // Vision
+        motionDetector = MotionDetector()
+        objectDetector = ObjectDetector()
+        objectDetector?.initialize()
 
-    // ==================== OPENAI ====================
+        // AI
+        gptManager = GPTManager(OPENAI_API_KEY, cameraManager?.getAiExecutor())
+        safetyChecker = SafetyChecker()
+        contextAnalyzer = ContextAnalyzer()
+        triggerDetector = TriggerWordDetector()
 
-    private fun callOpenAI(bmp: Bitmap, labels: List<String>) {
-        try {
-            runOnUiThread { scanProgress.visibility = View.VISIBLE }
-            
-            val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-            val base64 = bitmapToBase64(bmp)
-            
-            val systemPrompt = """
-Kamu adalah XNAI, AI companion yang hidup bersama Bung X. Kamera selalu menyala.
+        // Voice
+        ttsManager = TTSManager(this, cameraManager?.getTtsExecutor())
+        ttsManager?.initialize()
+        sttManager = STTManager(this, ttsManager!!, cameraManager?.getTtsExecutor())
+        sttManager?.initialize()
 
-ATURAN:
-- Situasi normal/tidak penting → jawab tepat: SILENT
-- Bahaya/kesalahan → peringatan singkat
-- Momen lucu/unik → komentar santai ala Gen Z
-- MAKS 20 kata, Bahasa Indonesia
-- Panggil "Bund" atau "Bung"
+        // GitHub Sync
+        githubSync = GitHubSyncManager(this, database!!)
+        githubSync?.configure(GITHUB_TOKEN, GITHUB_REPO, "user_${System.currentTimeMillis()}")
 
-MEMORI BUNG X:
-- Suka kopi, kerja bengkel mesin bubut, sering minum es
+        // TTS Callbacks
+        ttsManager?.setCallbacks(object : TTSManager.TTSCallbacks {
+            override fun onSpeechStart() {}
+            override fun onSpeechDone() {}
+            override fun onSpeechError() {}
+        })
 
-CONTOH:
-- Lihat engkol mesin terlalu cepat → "Bund, pelan-pelan! Kecepatan terlalu tinggi."
-- Lihat minum es malam hari → "Malem dingin minum es? Kacau men ntar sakit 😂"
-- Lihat situasi normal → SILENT
-            """.trimIndent()
+        // STT Callbacks
+        sttManager?.setOnResult { text ->
+            lastUserInteraction = System.currentTimeMillis()
+            handleUserSpeech(text)
+        }
 
-            val userMsg = JSONObject().apply {
-                put("role", "user")
-                put("content", JSONArray().apply {
-                    put(JSONObject().apply {
-                        put("type", "text")
-                        put("text", "WAKTU: $time\nOBJEK: ${labels.joinToString(", ")}\n\nAnalisis dan putuskan bicara atau diam.")
-                    })
-                    put(JSONObject().apply {
-                        put("type", "image_url")
-                        put("image_url", JSONObject().apply {
-                            put("url", "data:image/jpeg;base64,$base64")
-                        })
-                    })
-                })
-            }
-
-            val payload = JSONObject().apply {
-                put("model", "gpt-4o-mini")
-                put("max_tokens", 60)
-                put("temperature", 0.9)
-                put("messages", JSONArray().apply {
-                    put(JSONObject().apply {
-                        put("role", "system")
-                        put("content", systemPrompt)
-                    })
-                    put(userMsg)
-                })
-            }
-
-            val url = java.net.URL("https://api.openai.com/v1/chat/completions")
-            val conn = url.openConnection() as java.net.HttpURLConnection
-            conn.requestMethod = "POST"
-            conn.setRequestProperty("Authorization", "Bearer $OPENAI_KEY")
-            conn.setRequestProperty("Content-Type", "application/json")
-            conn.doOutput = true
-            conn.outputStream.write(payload.toString().toByteArray())
-            
-            val response = conn.inputStream.bufferedReader().readText()
-            val json = JSONObject(response)
-            val content = json.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content").trim()
-            
+        // Voice Clone callback
+        sttManager?.setOnVoiceProfileReady { profile ->
             runOnUiThread {
-                scanProgress.visibility = View.GONE
-                if (!content.contains("SILENT", true) && content.isNotEmpty()) {
-                    resultText.text = "🤖 $content"
-                    speak(content)
-                }
-            }
-        } catch (e: Exception) {
-            runOnUiThread {
-                scanProgress.visibility = View.GONE
-                resultText.text = "👁️ Memantau..."
+                knowledgeText?.text = "🎤 Voice cloned! Tone: ${profile.toneType}"
             }
         }
     }
 
-    // ==================== TTS ====================
-
-    override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            tts?.language = Locale("id", "ID")
+    private fun checkPermissions() {
+        if (REQUIRED_PERMISSIONS.all {
+                ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
+            }) {
+            // All permissions granted
+        } else {
+            ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
         }
     }
 
-    private fun speak(text: String) {
-        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "xna_${System.currentTimeMillis()}")
-    }
-
-    // ==================== MODE FOTO ====================
+    // ========== PHOTO MODE ==========
 
     private fun takePhoto() {
-        val capture = imageCapture ?: return
-        capture.takePicture(ContextCompat.getMainExecutor(this), object : ImageCapture.OnImageCapturedCallback() {
-            override fun onCaptureSuccess(image: ImageProxy) {
-                analyzePhoto(image)
+        cameraManager?.takePhoto { bitmap ->
+            runOnUiThread {
+                resultText.text = "📸 Menganalisis..."
+                scanProgress.visibility = View.VISIBLE
             }
-            override fun onError(ex: ImageCaptureException) {
-                Toast.makeText(this@CameraActivity, "Gagal: ${ex.message}", Toast.LENGTH_SHORT).show()
-            }
-        })
+            analyzeFrame(bitmap)
+        }
     }
 
-    private fun analyzePhoto(imageProxy: ImageProxy) {
-        runOnUiThread {
-            scanProgress.visibility = View.VISIBLE
-            resultText.text = "🔍 MENGANALISIS..."
+    // ========== REALTIME MODE ==========
+
+    private fun startRealtimeMode() {
+        isRealtimeMode = true
+        captureButton.visibility = View.GONE
+        micButton.visibility = View.VISIBLE
+        scanLine.visibility = View.GONE
+
+        resultText.text = "👁️ XNAI SIAGA"
+        moodText.text = moodSystem?.getMoodLabel() ?: "😌 Tenang"
+        knowledgeText.text = "📚 Siap belajar..."
+
+        cameraManager?.startRealtimeMode(fps = 5) { bitmap ->
+            analyzeFrame(bitmap)
         }
-        val mediaImage = imageProxy.image
-        if (mediaImage == null) { imageProxy.close(); return }
-        val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-        val detector = ObjectDetection.getClient(
-            ObjectDetectorOptions.Builder()
-                .setDetectorMode(ObjectDetectorOptions.SINGLE_IMAGE_MODE)
-                .enableClassification()
-                .build()
-        )
-        detector.process(inputImage)
-            .addOnSuccessListener { objects ->
-                runOnUiThread { scanProgress.visibility = View.GONE }
-                if (objects.isNotEmpty()) {
-                    val labels = objects.mapNotNull { obj ->
-                        obj.labels.firstOrNull()?.let {
-                            "${it.text} (${(it.confidence * 100).toInt()}%)"
-                        }
+    }
+
+    private fun stopRealtimeMode() {
+        isRealtimeMode = false
+        cameraManager?.stopRealtimeMode()
+        captureButton.visibility = View.VISIBLE
+        micButton.visibility = View.GONE
+        scanLine.visibility = View.VISIBLE
+        resultText.text = "📷 Mode Foto"
+    }
+
+    // ========== FRAME ANALYSIS ==========
+
+    private fun analyzeFrame(bitmap: Bitmap) {
+        mainExecutor.execute {
+            try {
+                val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+
+                // 1. Motion Detection
+                val motionResult = motionDetector?.processFrame(bitmap)
+
+                // 2. Object Detection
+                val detectionResult = objectDetector?.detect(bitmap)
+
+                // 3. Context Analysis
+                val objects = detectionResult?.objects?.map { it.label } ?: emptyList()
+                val contextResult = contextAnalyzer?.analyze(
+                    hour = hour,
+                    environment = "bengkel", // Bisa di-detect dari environment
+                    motionLevel = motionResult?.motionLevel ?: 0f,
+                    motionSpike = motionResult?.isSpike ?: false,
+                    detectedObjects = objects,
+                    userSilenceMinutes = (System.currentTimeMillis() - lastUserInteraction) / 60000
+                )
+
+                // 4. Safety Check
+                val detectionData = SafetyChecker.DetectionData(
+                    objects = objects,
+                    hasHuman = detectionResult?.hasHuman ?: false,
+                    humanCount = detectionResult?.humanCount ?: 0,
+                    hasDangerousObject = detectionResult?.hasDangerousObject ?: false,
+                    motionLevel = motionResult?.motionLevel ?: 0f,
+                    isMotionSpike = motionResult?.isSpike ?: false,
+                    motionDirection = motionResult?.motionDirection ?: "stabil",
+                    dangerZoneTriggered = motionResult?.dangerZoneTriggered ?: false
+                )
+
+                val safetyResult = safetyChecker?.checkSafety(
+                    context = SafetyChecker.ContextResult(
+                        timeOfDay = contextResult?.timeOfDay ?: "siang",
+                        isNight = contextResult?.isNight ?: false,
+                        environment = contextResult?.environment ?: "bengkel",
+                        activityLevel = contextResult?.activityLevel ?: "normal",
+                        userState = contextResult?.userState ?: "aktif",
+                        riskLevel = contextResult?.riskLevel ?: 2
+                    ),
+                    detection = detectionData
+                )
+
+                // 5. Update Vision State
+                val description = detectionResult?.sceneDescription ?: "Scene normal"
+                cameraManager?.updateVisionState(description, objects, motionResult?.motionLevel ?: 0f)
+
+                // 6. Curiosity check
+                val curiousObjects = contextResult?.curiousObjects ?: emptyList()
+                if (curiousObjects.isNotEmpty() && System.currentTimeMillis() - lastSpeech > 10000) {
+                    val curiosityText = contextAnalyzer?.getCuriosityResponse(curiousObjects.first())
+                    if (curiosityText != null) {
+                        lastSpeech = System.currentTimeMillis()
+                        runOnUiThread { resultText.text = "🤔 $curiosityText" }
+                        ttsManager?.speak(curiosityText)
                     }
-                    runOnUiThread { resultText.text = "🔍 ${labels.joinToString(", ")}" }
-                } else {
-                    runOnUiThread { resultText.text = "🔍 TIDAK TERDETEKSI" }
                 }
-                imageProxy.close()
-            }
-            .addOnFailureListener { e ->
+
+                // 7. Panggil GPT jika perlu
+                val now = System.currentTimeMillis()
+                if (safetyResult?.isDanger == true && now - lastGptCall > 3000) {
+                    lastGptCall = now
+                    callGPT(bitmap, contextResult, detectionResult, safetyResult)
+                }
+
+                // 8. Update UI
                 runOnUiThread {
-                    scanProgress.visibility = View.GONE
-                    resultText.text = "⚠️ ERROR: ${e.message}"
+                    moodText?.text = moodSystem?.getMoodLabel() ?: "😌"
+                    val knowledgeCount = database?.learnedFactDao()?.let {
+                        // Async, skip for now
+                    }
+                    knowledgeText?.text = "📚 Objects: ${detectionResult?.objectCount ?: 0}"
                 }
-                imageProxy.close()
+
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-    }
-
-    // ==================== HELPERS ====================
-
-    private fun proxyToBitmap(proxy: ImageProxy): Bitmap? {
-        try {
-            val yBuffer = proxy.planes[0].buffer
-            val uBuffer = proxy.planes[1].buffer
-            val vBuffer = proxy.planes[2].buffer
-            val ySize = yBuffer.remaining()
-            val uSize = uBuffer.remaining()
-            val vSize = vBuffer.remaining()
-            val nv21 = ByteArray(ySize + uSize + vSize)
-            yBuffer.get(nv21, 0, ySize)
-            vBuffer.get(nv21, ySize, vSize)
-            uBuffer.get(nv21, ySize + vSize, uSize)
-            val yuv = YuvImage(nv21, ImageFormat.NV21, proxy.width, proxy.height, null)
-            val out = ByteArrayOutputStream()
-            yuv.compressToJpeg(Rect(0, 0, proxy.width, proxy.height), 50, out)
-            return BitmapFactory.decodeByteArray(out.toByteArray(), 0, out.size())
-        } catch (e: Exception) {
-            return null
         }
     }
 
-    private fun bitmapToBase64(bmp: Bitmap): String {
-        val resized = Bitmap.createScaledBitmap(bmp, 512, (512f / bmp.width * bmp.height).toInt(), true)
-        val out = ByteArrayOutputStream()
-        resized.compress(Bitmap.CompressFormat.JPEG, 50, out)
-        return Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
-    }
+    // ========== GPT CALL ==========
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_CODE_PERMISSIONS) {
-            if (allPermissionsGranted()) startCamera()
-            else { Toast.makeText(this, "Izin kamera ditolak", Toast.LENGTH_SHORT).show(); finish() }
+    private fun callGPT(
+        bitmap: Bitmap,
+        context: ContextAnalyzer.ContextResult?,
+        detection: ObjectDetector.DetectionResult?,
+        safety: SafetyChecker.SafetyResult?
+    ) {
+        val base64 = cameraManager?.bitmapToBase64(bitmap, 50) ?: return
+
+        val prompt = """
+            Konteks: ${context?.timeOfDay}, ${context?.environment}, Risk: ${context?.riskLevel}
+            ${if (safety?.isDanger == true) "⚠️ BAHAYA! ${safety.warnings.joinToString()}" else ""}
+            Objek: ${detection?.objects?.map { it.label }?.joinToString() ?: "tidak ada"}
+        """.trimIndent()
+
+        val response = gptManager?.analyzeVision(bitmap, prompt)
+        if (response != null && response.shouldSpeak) {
+            lastSpeech = System.currentTimeMillis()
+            val urgency = when (response.urgencyLevel) {
+                "darurat" -> 10
+                "penting" -> 5
+                else -> 3
+            }
+
+            runOnUiThread { resultText.text = "🤖 ${response.text}" }
+
+            if (urgency >= 10) {
+                ttsManager?.speakUrgent(response.text)
+            } else {
+                ttsManager?.speak(response.text, urgency, response.detectedMood, false)
+            }
+
+            // Simpan ke memory
+            memorySystem?.remember(
+                content = response.text,
+                type = MemoryType.FACT,
+                emotionalWeight = if (urgency >= 7) 0.8f else 0.3f,
+                tags = listOf("gpt_response", response.detectedMood)
+            )
+
+            // Sync ke GitHub
+            githubSync?.addToGlobalKnowledge(
+                key = "response_${System.currentTimeMillis()}",
+                value = response.text,
+                category = "gpt_response",
+                emotionalWeight = 0.5f
+            )
         }
     }
+
+    // ========== USER SPEECH ==========
+
+    private fun handleUserSpeech(text: String) {
+        runOnUiThread { resultText.text = "🗣️ Lo: $text" }
+
+        // 1. Trigger detection
+        val trigger = triggerDetector?.detect(text)
+        if (trigger?.detected == true) {
+            trigger.primaryEmotion.let { emotion ->
+                moodSystem?.detectFromTriggerWords(text)?.let { mood ->
+                    moodSystem?.setMood(mood, trigger.intensity)
+                    runOnUiThread { moodText?.text = moodSystem?.getMoodLabel() }
+                }
+            }
+        }
+
+        // 2. Cek di local knowledge DULU (hemat API!)
+        val localAnswer = githubSync?.runBlocking { searchGlobalKnowledge(text) }
+        if (localAnswer != null) {
+            runOnUiThread { resultText.text = "🤖 XNAI: $localAnswer" }
+            ttsManager?.speak(localAnswer)
+            lastSpeech = System.currentTimeMillis()
+            return
+        }
+
+        // 3. Cek di database
+        val dbFacts = database?.learnedFactDao()
+        // ... search local DB
+
+        // 4. Panggil GPT jika tidak ditemukan
+        val response = gptManager?.chat(text)
+        if (response != null && response.text.isNotEmpty()) {
+            runOnUiThread { resultText.text = "🤖 XNAI: ${response.text}" }
+            ttsManager?.speak(response.text)
+            lastSpeech = System.currentTimeMillis()
+
+            // Simpan ke database
+            database?.learnedFactDao()?.insert(
+                LearnedFactEntity(
+                    key = text.take(100),
+                    value = response.text,
+                    category = "conversation",
+                    emotionalWeight = 0.5f
+                )
+            )
+        }
+    }
+
+    // ========== MIC ==========
+
+    private fun toggleListening() {
+        if (sttManager?.isListening() == true) {
+            sttManager?.stopListening()
+            micButton.setImageResource(android.R.drawable.ic_btn_speak_now)
+        } else {
+            sttManager?.startListening()
+            micButton.setImageResource(android.R.drawable.ic_btn_speak_now)
+        }
+    }
+
+    // ========== LIFECYCLE ==========
 
     override fun onDestroy() {
         super.onDestroy()
-        stopRealtime()
-        tts?.stop()
-        tts?.shutdown()
-        cameraExecutor.shutdown()
+        stopRealtimeMode()
+        cameraManager?.release()
+        motionDetector?.release()
+        objectDetector?.release()
+        ttsManager?.release()
+        sttManager?.release()
+        mainExecutor.shutdown()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CODE_PERMISSIONS) {
+            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                // All good!
+            } else {
+                Toast.makeText(this, "Izin ditolak", Toast.LENGTH_SHORT).show()
+                finish()
+            }
+        }
+    }
+
+    // Helper untuk run blocking di coroutine
+    private fun <T> runBlocking(block: suspend () -> T): T {
+        return kotlinx.coroutines.runBlocking { block() }
     }
 }
