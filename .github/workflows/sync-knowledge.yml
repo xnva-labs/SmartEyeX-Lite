@@ -1,0 +1,32 @@
+name: Auto-Sync Knowledge Base
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Tiap 6 jam
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Knowledge Repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/xnai-knowledge
+          token: ${{ secrets.GITHUB_SYNC_TOKEN }}
+          path: knowledge-repo
+
+      - name: Merge & Validate
+        run: |
+          cd knowledge-repo
+          
+          # Update timestamp
+          echo "Last auto-sync: $(date -u)" >> sync-log.txt
+          
+          # Commit
+          git config user.name "XNAI Auto-Sync"
+          git config user.email "xnai@smarteyex.dev"
+          git add .
+          git commit -m "🔄 Auto-sync: $(date -u)" || echo "No changes"
+          git push || echo "Nothing to push"
