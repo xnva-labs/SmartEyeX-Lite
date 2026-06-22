@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    - cron: '0 */6 * * *'  # Auto-build tiap 6 jam
+    - cron: '0 */6 * * *'
   workflow_dispatch:
     inputs:
       build_type:
@@ -56,6 +56,17 @@ jobs:
             ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
 
+      # ============================================
+      # 🔥 FIX: Download gradle-wrapper.jar
+      # ============================================
+      - name: Download gradle-wrapper.jar
+        run: |
+          mkdir -p gradle/wrapper
+          wget -q -O gradle/wrapper/gradle-wrapper.jar \
+            https://raw.githubusercontent.com/gradle/gradle/v8.10.2/gradle/wrapper/gradle-wrapper.jar
+          echo "✅ gradle-wrapper.jar downloaded:"
+          ls -lh gradle/wrapper/gradle-wrapper.jar
+
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
@@ -96,7 +107,6 @@ jobs:
         run: |
           cd knowledge-repo
           
-          # Update config.json
           cat > config.json << 'EOF'
           {
             "app_name": "SmartEyeX Lite",
@@ -127,14 +137,12 @@ jobs:
           }
           EOF
           
-          # Update sync-log.txt
           echo "[${{ github.run_number }}] Build: ${{ github.sha }} — $(date -u)" >> sync-log.txt
           
-          # Commit & Push
           git config user.name "XNAI Auto-Sync"
           git config user.email "xnai@smarteyex.dev"
           git add .
-          git commit -m "🔄 Auto-sync: Build #${{ github.run_number }}" || echo "No changes to commit"
+          git commit -m "🔄 Auto-sync: Build #${{ github.run_number }}" || echo "No changes"
           git push || echo "Nothing to push"
 
       - name: Create GitHub Release
@@ -149,8 +157,7 @@ jobs:
             **Commit:** ${{ github.sha }}
             **Tanggal:** $(date +'%Y-%m-%d %H:%M:%S')
             
-            ### 🧠 XNAI Brain Systems (18):
-            Mood, Emotion, Personality, Memory, HumanBody, Activity, Environment, Object, Profession, Physics, Math, AI Knowledge, Law, Ethics, Social, Identity, Heart, Existence
+            ### 🧠 XNAI Brain Systems (18)
             
             ### 📦 Termasuk:
             - APK Debug
@@ -187,8 +194,6 @@ jobs:
       - name: Validate JSON Files
         run: |
           cd knowledge-repo
-          
-          # Validasi semua file JSON
           for f in *.json projects/*.json; do
             if [ -f "$f" ]; then
               python3 -m json.tool "$f" > /dev/null && echo "✅ $f valid" || echo "❌ $f invalid"
@@ -199,7 +204,6 @@ jobs:
         run: |
           cd knowledge-repo
           
-          # Hitung total fakta
           TOTAL_FACTS=$(python3 -c "
           import json
           with open('global_knowledge.json', 'r') as f:
@@ -209,7 +213,6 @@ jobs:
           
           echo "📊 Total Facts: $TOTAL_FACTS"
           
-          # Update README
           cat > README.md << EOF
           # 🧠 XNAI Global Knowledge Base
           
