@@ -1,103 +1,236 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
-    id 'kotlin-kapt'
+    id 'org.jetbrains.kotlin.plugin.serialization'
+    id 'com.google.devtools.ksp'
 }
 
 android {
     namespace 'com.smarteyex.lite'
-    compileSdk 34
+    compileSdk 35  // Juni 2026 — Android 15 (Vanilla Ice Cream)
 
     defaultConfig {
         applicationId "com.smarteyex.lite"
-        minSdk 24
-        targetSdk 34
+        minSdk 26  // Android 8.0 minimal (90%+ devices 2026)
+        targetSdk 35
         versionCode 1
         versionName "1.0.0"
         vectorDrawables.useSupportLibrary = true
 
-buildConfigField "String", "GEMINI_API_KEY", "\"${System.getenv("GEMINI_API_KEY") ?: ""}\""
+        // 🔥 API KEY DARI ENVIRONMENT VARIABLE
+        def localProperties = new Properties()
+        def localPropertiesFile = rootProject.file('local.properties')
+        if (localPropertiesFile.exists()) {
+            localProperties.load(new FileInputStream(localPropertiesFile))
+        }
+
+        buildConfigField "String", "GEMINI_API_KEY", 
+            "\"${localProperties.getProperty("GEMINI_API_KEY", System.getenv("GEMINI_API_KEY") ?: "")}\""
+        buildConfigField "String", "OPENAI_API_KEY", 
+            "\"${localProperties.getProperty("OPENAI_API_KEY", System.getenv("OPENAI_API_KEY") ?: "")}\""
+        buildConfigField "String", "GITHUB_SYNC_TOKEN", 
+            "\"${localProperties.getProperty("GITHUB_SYNC_TOKEN", System.getenv("GITHUB_SYNC_TOKEN") ?: "")}\""
+        
+        // Test instrument runner
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        release {
+            // Signing config untuk release
+            storeFile file("keystore.jks")
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
+            keyAlias System.getenv("KEY_ALIAS") ?: ""
+            keyPassword System.getenv("KEY_PASSWORD") ?: ""
+        }
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
         debug {
             minifyEnabled false
             debuggable true
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
         }
     }
 
     buildFeatures {
         viewBinding true
         buildConfig true
+        compose true  // Siap untuk Jetpack Compose
+    }
+    
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.14"  // Compose Compiler terbaru
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_21  // Java 21 (LTS)
+        targetCompatibility JavaVersion.VERSION_21
     }
 
     kotlinOptions {
-        jvmTarget = '17'
+        jvmTarget = '21'
+        freeCompilerArgs += [
+            '-Xjvm-default=all',
+            '-opt-in=kotlin.RequiresOptIn'
+        ]
+    }
+    
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+            excludes += '/META-INF/DEPENDENCIES'
+            excludes += '/META-INF/LICENSE'
+            excludes += '/META-INF/LICENSE.txt'
+            excludes += '/META-INF/NOTICE'
+            excludes += '/META-INF/NOTICE.txt'
+        }
+    }
+    
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
     }
 }
 
 dependencies {
-    // AndroidX Core & Lifecycle
-    implementation 'androidx.core:core-ktx:1.12.0'
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.6.2'
-    implementation 'androidx.activity:activity-ktx:1.8.0'
-    implementation 'androidx.fragment:fragment-ktx:1.6.2'
-    
-    // Material Design
-    implementation 'com.google.android.material:material:1.11.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    // ============================================
+    // ANDROIDX CORE (Juni 2026)
+    // ============================================
+    implementation 'androidx.core:core-ktx:1.15.0'
+    implementation 'androidx.core:core-splashscreen:1.1.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.7'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7'
+    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.8.7'
+    implementation 'androidx.activity:activity-ktx:1.10.0'
+    implementation 'androidx.fragment:fragment-ktx:1.8.5'
+    implementation 'androidx.preference:preference-ktx:1.2.1'
+    implementation 'androidx.security:security-crypto:1.1.0-alpha07'
+
+    // ============================================
+    // COMPOSE (Optional — siap untuk UI modern)
+    // ============================================
+    implementation platform('androidx.compose:compose-bom:2024.06.00')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-graphics'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.compose.material:material-icons-extended'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+
+    // ============================================
+    // MATERIAL DESIGN
+    // ============================================
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.0'
     implementation 'androidx.drawerlayout:drawerlayout:1.2.0'
-    
-    // RecyclerView & CardView
-    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+
+    // ============================================
+    // RECYCLERVIEW & CARDVIEW
+    // ============================================
+    implementation 'androidx.recyclerview:recyclerview:1.4.0'
     implementation 'androidx.cardview:cardview:1.0.0'
-    
-    // Camera X
-    implementation 'androidx.camera:camera-camera2:1.3.0'
-    implementation 'androidx.camera:camera-lifecycle:1.3.0'
-    implementation 'androidx.camera:camera-view:1.3.0'
-    
-    // ML Kit for Vision
-    implementation 'com.google.mlkit:image-labeling:17.0.7'
-    implementation 'com.google.mlkit:object-detection:17.0.0'
-    implementation 'com.google.mlkit:text-recognition:16.0.0'
-    
-    // Networking
-    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
-    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
-    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
-    
-    // JSON
-    implementation 'com.google.code.gson:gson:2.10.1'
-    
-    // Coroutines
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
-    
-    // Room Database (Memory Permanen)
-    implementation 'androidx.room:room-runtime:2.6.1'
-    implementation 'androidx.room:room-ktx:2.6.1'
-    kapt 'androidx.room:room-compiler:2.6.1'
-    
-    // Image Loading
-    implementation 'com.github.bumptech.glide:glide:4.16.0'
-    kapt 'com.github.bumptech.glide:compiler:4.16.0'
-    
-    // Animation
-    implementation 'com.airbnb.android:lottie:6.1.0'
-    
-    // Testing
+
+    // ============================================
+    // CAMERAX (Juni 2026)
+    // ============================================
+    implementation 'androidx.camera:camera-core:1.5.0'
+    implementation 'androidx.camera:camera-camera2:1.5.0'
+    implementation 'androidx.camera:camera-lifecycle:1.5.0'
+    implementation 'androidx.camera:camera-view:1.5.0'
+    implementation 'androidx.camera:camera-video:1.5.0'
+    implementation 'androidx.camera:camera-extensions:1.5.0'
+
+    // ============================================
+    // ML KIT (Juni 2026)
+    // ============================================
+    implementation 'com.google.mlkit:image-labeling:17.0.9'
+    implementation 'com.google.mlkit:object-detection:17.0.2'
+    implementation 'com.google.mlkit:text-recognition:16.0.1'
+    implementation 'com.google.mlkit:face-detection:16.1.7'
+    implementation 'com.google.mlkit:pose-detection:18.0.0-beta5'
+
+    // ============================================
+    // MEDIAPIPE (Juni 2026)
+    // ============================================
+    implementation 'com.google.mediapipe:tasks-vision:0.10.18'
+
+    // ============================================
+    // OPENCV
+    // ============================================
+    implementation 'com.quickbirdstudios:opencv:4.9.0'
+
+    // ============================================
+    // NETWORKING
+    // ============================================
+    implementation 'com.squareup.okhttp3:okhttp:5.0.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:5.0.0'
+    implementation 'com.squareup.retrofit2:retrofit:2.11.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.11.0'
+    implementation 'com.squareup.retrofit2:converter-kotlinx-serialization:2.11.0'
+
+    // ============================================
+    // JSON & SERIALIZATION
+    // ============================================
+    implementation 'com.google.code.gson:gson:2.11.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3'
+
+    // ============================================
+    // COROUTINES
+    // ============================================
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0'
+
+    // ============================================
+    // ROOM DATABASE (Juni 2026)
+    // ============================================
+    implementation 'androidx.room:room-runtime:2.7.0'
+    implementation 'androidx.room:room-ktx:2.7.0'
+    implementation 'androidx.room:room-guava:2.7.0'
+    ksp 'androidx.room:room-compiler:2.7.0'
+
+    // ============================================
+    // IMAGE LOADING
+    // ============================================
+    implementation 'com.github.bumptech.glide:glide:5.0.0'
+    ksp 'com.github.bumptech.glide:ksp:5.0.0'
+
+    // ============================================
+    // ANIMATION
+    // ============================================
+    implementation 'com.airbnb.android:lottie:6.5.0'
+
+    // ============================================
+    // WORK MANAGER
+    // ============================================
+    implementation 'androidx.work:work-runtime-ktx:2.10.0'
+
+    // ============================================
+    // DATASTORE (ganti SharedPreferences)
+    // ============================================
+    implementation 'androidx.datastore:datastore-preferences:1.1.1'
+
+    // ============================================
+    // STARTUP
+    // ============================================
+    implementation 'androidx.startup:startup-runtime:1.2.0'
+
+    // ============================================
+    // TESTING
+    // ============================================
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0'
+    testImplementation 'androidx.room:room-testing:2.7.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
 }
