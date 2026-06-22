@@ -1,2 +1,112 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" />
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- ============================================ -->
+    <!-- PROFIL -->
+    <!-- ============================================ -->
+    <PreferenceCategory
+        android:title="👤 Profil"
+        app:iconSpaceReserved="false">
+
+        <EditTextPreference
+            android:key="user_name"
+            android:title="Nama Panggilan"
+            android:summary="Panggilan XNAI ke Bung"
+            android:defaultValue="Bung X"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference
+            android:key="personality"
+            android:title="Kepribadian XNAI"
+            android:summary="Gaya bicara XNAI"
+            android:entries="@array/personality_entries"
+            android:entryValues="@array/personality_values"
+            android:defaultValue="SmartEyeX"
+            app:useSimpleSummaryProvider="true" />
+
+    </PreferenceCategory>
+
+    <!-- ============================================ -->
+    <!-- SUARA -->
+    <!-- ============================================ -->
+    <PreferenceCategory
+        android:title="🎤 Suara"
+        app:iconSpaceReserved="false">
+
+        <SwitchPreferenceCompat
+            android:key="voice_enabled"
+            android:title="Aktifkan Suara"
+            android:summary="XNAI bisa bicara"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="voice_clone_enabled"
+            android:title="Voice Clone"
+            android:summary="XNAI meniru suara Bung"
+            android:defaultValue="true" />
+
+    </PreferenceCategory>
+
+    <!-- ============================================ -->
+    <!-- AI & KNOWLEDGE -->
+    <!-- ============================================ -->
+    <PreferenceCategory
+        android:title="🧠 AI & Pengetahuan"
+        app:iconSpaceReserved="false">
+
+        <SwitchPreferenceCompat
+            android:key="auto_learn_enabled"
+            android:title="Auto-Learning"
+            android:summary="XNAI belajar otomatis"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="github_sync_enabled"
+            android:title="GitHub Sync"
+            android:summary="Sinkronisasi pengetahuan global"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="offline_mode"
+            android:title="Mode Offline"
+            android:summary="Jawab dari memori lokal"
+            android:defaultValue="false" />
+
+        <Preference
+            android:key="clear_memory"
+            android:title="🧹 Hapus Memori"
+            android:summary="Reset pengetahuan XNAI" />
+
+    </PreferenceCategory>
+
+    <!-- ============================================ -->
+    <!-- PRIVASI -->
+    <!-- ============================================ -->
+    <PreferenceCategory
+        android:title="🔒 Privasi"
+        app:iconSpaceReserved="false">
+
+        <SwitchPreferenceCompat
+            android:key="privacy_mode"
+            android:title="Mode Privasi"
+            android:summary="Data tidak dikirim ke cloud"
+            android:defaultValue="false" />
+
+    </PreferenceCategory>
+
+    <!-- ============================================ -->
+    <!-- TENTANG -->
+    <!-- ============================================ -->
+    <PreferenceCategory
+        android:title="ℹ️ Tentang"
+        app:iconSpaceReserved="false">
+
+        <Preference
+            android:key="app_version"
+            android:title="Versi"
+            android:summary="SmartEyeX Lite v1.0.0" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>
