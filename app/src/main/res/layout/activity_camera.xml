@@ -1,152 +1,161 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000">
+    android:background="#000000"
+    tools:context=".CameraActivity">
 
-    <!-- Preview Kamera -->
+    <!-- ========== PREVIEW KAMERA (FULL SCREEN) ========== -->
     <androidx.camera.view.PreviewView
         android:id="@+id/previewView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Scanning Line Animation (garis scan bergerak) -->
+    <!-- ========== SCAN LINE (ANIMASI) ========== -->
     <View
         android:id="@+id/scanLine"
         android:layout_width="match_parent"
         android:layout_height="2dp"
-        android:background="#00E5FF"
-        android:alpha="0.8"
-        android:translationY="0dp" />
+        android:background="#00FFCC"
+        android:alpha="0.6"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- HUD Overlay (kayak di film) -->
+    <!-- ========== TOP BAR ========== -->
     <LinearLayout
+        android:id="@+id/topBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="top"
         android:orientation="horizontal"
-        android:padding="16dp"
-        android:background="#80000000">
+        android:padding="12dp"
+        android:gravity="center_vertical"
+        app:layout_constraintTop_toTopOf="parent">
 
+        <!-- Back Button -->
+        <ImageButton
+            android:id="@+id/backButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@android:drawable/ic_menu_revert"
+            android:background="@android:color/transparent"
+            android:tint="#FFFFFF"
+            android:contentDescription="Kembali" />
+
+        <!-- Title -->
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="● LIVE"
-            android:textColor="#FF0266"
-            android:textSize="12sp"
-            android:fontFamily="monospace"
-            android:letterSpacing="0.1" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="SMARTEYEX"
-            android:textColor="#00E5FF"
-            android:textSize="12sp"
-            android:fontFamily="monospace"
-            android:letterSpacing="0.2" />
-
-    </LinearLayout>
-
-    <!-- Result Panel - Glassmorphism -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:padding="24dp"
-        android:layout_marginHorizontal="24dp">
-
-        <TextView
-            android:id="@+id/resultText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="🔍 TARGET ACQUISITION"
-            android:textColor="#00E5FF"
-            android:textSize="14sp"
+            android:text="SmartEyeX Lite"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold"
             android:gravity="center"
-            android:padding="16dp"
-            android:background="#1A00E5FF"
-            android:fontFamily="monospace"
-            android:letterSpacing="0.05"
-            android:shadowColor="#00E5FF"
-            android:shadowDx="0"
-            android:shadowDy="0"
-            android:shadowRadius="8" />
+            android:layout_marginHorizontal="8dp" />
 
-    </LinearLayout>
-
-    <!-- Control Panel Bawah -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:orientation="vertical"
-        android:padding="24dp"
-        android:background="#80000000">
-
-        <!-- Progress Bar scanning -->
-        <ProgressBar
-            android:id="@+id/scanProgress"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
-            android:layout_height="2dp"
-            android:layout_marginBottom="16dp"
-            android:progressTint="#00E5FF"
-            android:indeterminate="true"
-            android:visibility="gone" />
-
-       <ToggleButton
-    android:id="@+id/realtimeToggle"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:layout_gravity="center"
-    android:layout_marginBottom="16dp"
-    android:textOn="REALTIME ON"
-    android:textOff="REALTIME OFF"
-    android:checked="false"
-    android:textColor="#00E5FF"
-    android:background="@drawable/bg_cyber_card" />
-
-        <!-- Tombol -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center">
-
-            <ImageButton
-                android:id="@+id/backButton"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:src="@android:drawable/ic_menu_revert"
-                android:background="@drawable/bg_cyber_card"
-                android:tint="#FF0266"
-                android:layout_marginEnd="32dp" />
-
-            <ImageButton
-                android:id="@+id/captureButton"
-                android:layout_width="80dp"
-                android:layout_height="80dp"
-                android:src="@android:drawable/ic_menu_camera"
-                android:background="@drawable/bg_cyber_card"
-                android:tint="#00E5FF" />
-
-        </LinearLayout>
-
-        <!-- Teks instruksi -->
+        <!-- Mood Text -->
         <TextView
+            android:id="@+id/moodText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="12dp"
-            android:text="▶ TAP TO CAPTURE"
-            android:textColor="#00E5FF"
-            android:textSize="10sp"
-            android:fontFamily="monospace"
-            android:alpha="0.7" />
+            android:text="😌 Tenang"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:paddingEnd="8dp" />
+
+        <!-- Toggle Realtime -->
+        <ToggleButton
+            android:id="@+id/realtimeToggle"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:textOff="📷 Foto"
+            android:textOn="👁️ Siaga"
+            android:textSize="11sp"
+            android:background="@drawable/toggle_background"
+            android:textColor="#FFFFFF" />
 
     </LinearLayout>
 
-</FrameLayout>
+    <!-- ========== RESULT TEXT (TENGAH) ========== -->
+    <TextView
+        android:id="@+id/resultText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📷 Mode Foto"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:padding="16dp"
+        android:background="#AA000000"
+        app:layout_constraintTop_toBottomOf="@id/topBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- ========== KNOWLEDGE TEXT (ATAS RESULT) ========== -->
+    <TextView
+        android:id="@+id/knowledgeText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📚 Siap belajar..."
+        android:textColor="#AACCDD"
+        android:textSize="11sp"
+        android:gravity="center"
+        android:padding="4dp"
+        android:background="#66000000"
+        app:layout_constraintTop_toBottomOf="@id/resultText"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- ========== PROGRESS BAR ========== -->
+    <ProgressBar
+        android:id="@+id/scanProgress"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:visibility="gone"
+        android:indeterminateTint="#00FFCC"
+        app:layout_constraintTop_toBottomOf="@id/knowledgeText"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp" />
+
+    <!-- ========== BOTTOM BAR ========== -->
+    <LinearLayout
+        android:id="@+id/bottomBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:padding="16dp"
+        android:background="#AA000000"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <!-- Capture Button (Mode Foto) -->
+        <ImageButton
+            android:id="@+id/captureButton"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:src="@android:drawable/ic_menu_camera"
+            android:background="@drawable/circle_button"
+            android:tint="#FFFFFF"
+            android:contentDescription="Ambil Foto" />
+
+        <!-- Mic Button (Mode Realtime) -->
+        <ImageButton
+            android:id="@+id/micButton"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:src="@android:drawable/ic_btn_speak_now"
+            android:background="@drawable/circle_button"
+            android:tint="#FFFFFF"
+            android:visibility="gone"
+            android:contentDescription="Bicara" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
