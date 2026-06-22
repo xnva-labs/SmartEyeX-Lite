@@ -1,5 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <exclude domain="sharedpref" path="*.xml" />
-    <exclude domain="database" path="*.db" />
+    <!-- ============================================ -->
+    // INCLUDE: Database XNAI (Memory Permanen)
+    // ============================================ -->
+    <include domain="database" path="smarteyex_memory" />
+    
+    <!-- ============================================ -->
+    // INCLUDE: Shared Preferences
+    // ============================================ -->
+    <include domain="sharedpref" path="SmartEyeX.xml" />
+    <include domain="sharedpref" path="user_settings.xml" />
+    
+    <!-- ============================================ -->
+    // INCLUDE: Knowledge Files (JSON Cache)
+    // ============================================ -->
+    <include domain="file" path="xnai_knowledge/" />
+    
+    <!-- ============================================ -->
+    // EXCLUDE: Cache (ga perlu di-backup)
+    // ============================================ -->
+    <exclude domain="cache" path="." />
+    <exclude domain="external" path="." />
 </full-backup-content>
