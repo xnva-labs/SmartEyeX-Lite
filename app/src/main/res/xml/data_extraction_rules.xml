@@ -1,7 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
+    <!-- ============================================ -->
+    // CLOUD BACKUP (Google Drive / Android Backup)
+    // ============================================ -->
     <cloud-backup>
-        <exclude domain="sharedpref" path="*.xml" />
-        <exclude domain="database" path="*.db" />
+        <!-- Database XNAI -->
+        <include domain="database" path="smarteyex_memory" />
+        
+        <!-- Shared Preferences -->
+        <include domain="sharedpref" path="SmartEyeX.xml" />
+        <include domain="sharedpref" path="user_settings.xml" />
+        
+        <!-- Knowledge JSON Files -->
+        <include domain="file" path="xnai_knowledge/" />
+        
+        <!-- Voice Profile -->
+        <include domain="file" path="voice_profiles/" />
     </cloud-backup>
+
+    <!-- ============================================ -->
+    // DEVICE TRANSFER (Pindah HP / Restore)
+    // ============================================ -->
+    <device-transfer>
+        <!-- Database XNAI -->
+        <include domain="database" path="smarteyex_memory" />
+        
+        <!-- Shared Preferences -->
+        <include domain="sharedpref" path="SmartEyeX.xml" />
+        <include domain="sharedpref" path="user_settings.xml" />
+        
+        <!-- Knowledge JSON Files -->
+        <include domain="file" path="xnai_knowledge/" />
+        
+        <!-- Voice Profile -->
+        <include domain="file" path="voice_profiles/" />
+    </device-transfer>
 </data-extraction-rules>
