@@ -1,8 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string-array name="voice_languages">
-        <item>Bahasa Indonesia</item>
-        <item>English (US)</item>
-        <item>Auto Detect</item>
+    <!-- Personality Options -->
+    <string-array name="personality_entries">
+        <item>🤖 SmartEyeX (Default)</item>
+        <item>😊 Santai & Humoris</item>
+        <item>🎓 Formal & Profesional</item>
+        <item>🧠 Logis & Analitis</item>
+    </string-array>
+    <string-array name="personality_values">
+        <item>SmartEyeX</item>
+        <item>Santai</item>
+        <item>Formal</item>
+        <item>Logis</item>
+    </string-array>
+
+    <!-- FPS Options -->
+    <string-array name="fps_entries">
+        <item>3 FPS (Hemat Baterai)</item>
+        <item>5 FPS (Normal)</item>
+        <item>10 FPS (Cepat)</item>
+        <item>15 FPS (Sangat Cepat)</item>
+    </string-array>
+    <string-array name="fps_values">
+        <item>3</item>
+        <item>5</item>
+        <item>10</item>
+        <item>15</item>
     </string-array>
 </resources>
