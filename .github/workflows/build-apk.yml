@@ -1,52 +1,230 @@
-name: Build SmartEyeX Lite APK
+name: Build & Sync SmartEyeX Lite
 
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 */6 * * *'  # Auto-build tiap 6 jam
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
 
 jobs:
+  # ============================================
+  # JOB 1: BUILD APK
+  # ============================================
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     env:
-     GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GITHUB_SYNC_TOKEN: ${{ secrets.GITHUB_SYNC_TOKEN }}
 
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 35
+          build-tools-version: 35.0.0
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartEyeX-Lite-${{ github.sha }}
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+  # ============================================
+  # JOB 2: SYNC KNOWLEDGE KE GITHUB JSON
+  # ============================================
+  sync-knowledge:
+    runs-on: ubuntu-latest
+    needs: build
+    if: success()
     
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
+    steps:
+      - name: Checkout Knowledge Repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/xnai-knowledge
+          token: ${{ secrets.GITHUB_SYNC_TOKEN }}
+          path: knowledge-repo
+
+      - name: Download Latest APK Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: SmartEyeX-Lite-${{ github.sha }}
+          path: apk/
+
+      - name: Update Knowledge from Build
+        run: |
+          cd knowledge-repo
+          
+          # Update config.json
+          cat > config.json << 'EOF'
+          {
+            "app_name": "SmartEyeX Lite",
+            "version": "1.0.0",
+            "build_number": "${{ github.run_number }}",
+            "last_build": "${{ github.sha }}",
+            "built_at": "${{ github.event.head_commit.timestamp }}",
+            "sdk_version": 35,
+            "min_android": 26,
+            "brain_systems": [
+              "MoodSystem", "EmotionFeelingSystem", "PersonalitySystem",
+              "MemorySystem", "HumanBodySystem", "ActivitySystem",
+              "EnvironmentSystem", "ObjectSystem", "ProfessionSystem",
+              "PhysicsSystem", "MathEngine", "AISelfKnowledge",
+              "LawSystem", "EthicsValuesSystem", "SocialRelationSystem",
+              "IdentitySystem", "HeartSystem", "ExistenceSystem"
+            ],
+            "features": [
+              "Real-time Camera AI",
+              "Object Detection (MediaPipe)",
+              "Motion Detection (OpenCV)",
+              "Voice Clone",
+              "Emotional Intelligence",
+              "Global Knowledge Sync",
+              "Offline Mode",
+              "GitHub Backup"
+            ]
+          }
+          EOF
+          
+          # Update sync-log.txt
+          echo "[${{ github.run_number }}] Build: ${{ github.sha }} — $(date -u)" >> sync-log.txt
+          
+          # Commit & Push
+          git config user.name "XNAI Auto-Sync"
+          git config user.email "xnai@smarteyex.dev"
+          git add .
+          git commit -m "🔄 Auto-sync: Build #${{ github.run_number }}" || echo "No changes to commit"
+          git push || echo "Nothing to push"
+
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "SmartEyeX Lite — Build #${{ github.run_number }}"
+          body: |
+            ## 🚀 SmartEyeX Lite Auto-Release
+            
+            **Build:** #${{ github.run_number }}
+            **Commit:** ${{ github.sha }}
+            **Tanggal:** $(date +'%Y-%m-%d %H:%M:%S')
+            
+            ### 🧠 XNAI Brain Systems (18):
+            Mood, Emotion, Personality, Memory, HumanBody, Activity, Environment, Object, Profession, Physics, Math, AI Knowledge, Law, Ethics, Social, Identity, Heart, Existence
+            
+            ### 📦 Termasuk:
+            - APK Debug
+            - Global Knowledge Sync
+            - Voice Clone Ready
+            
+            ### 📥 Cara Install:
+            1. Download APK di bawah
+            2. Enable "Install from Unknown Sources"
+            3. Install & Jalankan!
+          files: |
+            apk/app-debug.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================
+  # JOB 3: MERGE GLOBAL KNOWLEDGE
+  # ============================================
+  merge-knowledge:
+    runs-on: ubuntu-latest
+    needs: sync-knowledge
+    if: success()
     
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-      with:
-        api-level: 34
-        build-tools-version: 34.0.0
-    
-    - name: Make gradlew executable
-      run: chmod +x ./gradlew
-    
-    - name: Create gradle wrapper directory
-      run: mkdir -p gradle/wrapper
-    
-    - name: Download gradle-wrapper.jar
-      run: |
-        wget -O gradle/wrapper/gradle-wrapper.jar https://github.com/gradle/gradle/raw/master/gradle/wrapper/gradle-wrapper.jar
-    
-    - name: Verify gradle-wrapper.jar exists
-      run: ls -lh gradle/wrapper/gradle-wrapper.jar
-    
-    - name: Build APK
-      run: ./gradlew assembleDebug --no-daemon --stacktrace
-    
-    - name: Upload APK
-      if: success()
-      uses: actions/upload-artifact@v4
-      with:
-        name: SmartEyeX-Lite-Debug
-        path: app/build/outputs/apk/debug/
-        retention-days: 30
+    steps:
+      - name: Checkout Knowledge Repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/xnai-knowledge
+          token: ${{ secrets.GITHUB_SYNC_TOKEN }}
+          path: knowledge-repo
+
+      - name: Validate JSON Files
+        run: |
+          cd knowledge-repo
+          
+          # Validasi semua file JSON
+          for f in *.json projects/*.json; do
+            if [ -f "$f" ]; then
+              python3 -m json.tool "$f" > /dev/null && echo "✅ $f valid" || echo "❌ $f invalid"
+            fi
+          done
+
+      - name: Generate Knowledge Stats
+        run: |
+          cd knowledge-repo
+          
+          # Hitung total fakta
+          TOTAL_FACTS=$(python3 -c "
+          import json
+          with open('global_knowledge.json', 'r') as f:
+              data = json.load(f)
+              print(len(data.get('facts', [])))
+          " 2>/dev/null || echo "0")
+          
+          echo "📊 Total Facts: $TOTAL_FACTS"
+          
+          # Update README
+          cat > README.md << EOF
+          # 🧠 XNAI Global Knowledge Base
+          
+          ## 📊 Statistics
+          - **Total Facts:** $TOTAL_FACTS
+          - **Last Updated:** $(date -u)
+          - **Build:** #${{ github.run_number }}
+          
+          ## 🧠 Brain Systems
+          18 brain systems working together
+          
+          ## 🤝 Contributors
+          Auto-generated from SmartEyeX Lite users worldwide
+          EOF
+          
+          git add README.md
+          git commit -m "📊 Update stats: $TOTAL_FACTS facts" || echo "No changes"
+          git push || echo "Nothing to push"
