@@ -59,37 +59,123 @@ jobs:
       # ============================================
       # 🔥 FIX: Download gradle-wrapper.jar
       # ============================================
-            - name: Download gradle-wrapper.jar
-              run: |
+            # ============================================
+      # Download Gradle Wrapper
+      # ============================================
+      - name: Download gradle-wrapper.jar
+        run: |
           mkdir -p gradle/wrapper
           wget -q -O gradle/wrapper/gradle-wrapper.jar \
             https://raw.githubusercontent.com/gradle/gradle/v8.10.2/gradle/wrapper/gradle-wrapper.jar
-          echo "✅ gradle-wrapper.jar downloaded:"
-          ls -lh gradle/wrapper/gradle-wrapper.jar
 
+      # ============================================
+      # Make gradlew executable
+      # ============================================
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Build & Analyze
+      # ============================================
+      # Project Information
+      # ============================================
+      - name: Project Info
         run: |
-          ./gradlew clean --no-daemon
-          ./gradlew dependencies --no-daemon
-          ./gradlew lint --continue --stacktrace --no-daemon || true
-          ./gradlew check --continue --stacktrace --no-daemon || true
-          ./gradlew assembleDebug --continue --stacktrace --no-daemon || true
+          echo "===== Gradle Version ====="
+          ./gradlew --version
 
-      - name: Upload Build Logs
+          echo "===== Projects ====="
+          ./gradlew projects --no-daemon
+
+          echo "===== Tasks ====="
+          ./gradlew tasks --no-daemon
+
+          echo "===== Dependencies ====="
+          ./gradlew dependencies --no-daemon
+
+      # ============================================
+      # Clean
+      # ============================================
+      - name: Clean Project
+        run: ./gradlew clean --no-daemon
+
+      # ============================================
+      # Android Resources (XML)
+      # ============================================
+      - name: Check Android Resources
+        run: |
+          ./gradlew :app:processDebugResources \
+          --stacktrace \
+          --continue \
+          --no-daemon || true
+
+      # ============================================
+      # Kotlin Compile
+      # ============================================
+      - name: Compile Kotlin
+        run: |
+          ./gradlew :app:compileDebugKotlin \
+          --stacktrace \
+          --continue \
+          --no-daemon || true
+
+      # ============================================
+      # Java Compile
+      # ============================================
+      - name: Compile Java
+        run: |
+          ./gradlew :app:compileDebugJavaWithJavac \
+          --stacktrace \
+          --continue \
+          --no-daemon || true
+
+      # ============================================
+      # Lint
+      # ============================================
+      - name: Android Lint
+        run: |
+          ./gradlew lint \
+          --stacktrace \
+          --continue \
+          --no-daemon || true
+
+      # ============================================
+      # Unit Check
+      # ============================================
+      - name: Gradle Check
+        run: |
+          ./gradlew check \
+          --stacktrace \
+          --continue \
+          --no-daemon || true
+
+      # ============================================
+      # Build APK
+      # ============================================
+      - name: Build Debug APK
+        run: |
+          ./gradlew assembleDebug \
+          --stacktrace \
+          --continue \
+          --no-daemon
+
+      # ============================================
+      # Upload Reports
+      # ============================================
+      - name: Upload Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-logs
+          name: SmartEyeX-Reports
           path: |
             **/build/reports/**
-            **/build/outputs/logs/**
             **/build/test-results/**
-            **/build/reports/tests/**
+            **/build/outputs/logs/**
+            **/build/tmp/**
+            **/build/intermediates/**
           retention-days: 30
 
+      # ============================================
+      # Upload APK
+      # ============================================
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
