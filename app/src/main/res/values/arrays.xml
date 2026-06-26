@@ -27,4 +27,14 @@
         <item>10</item>
         <item>15</item>
     </string-array>
+    <!-- Voice Languages -->
+    <string-array name="voice_languages">
+        <item>🇮🇩 Indonesia</item>
+        <item>🇺🇸 English</item>
+    </string-array>
+
+    <string-array name="voice_language_values">
+        <item>id</item>
+        <item>en</item>
+    </string-array>
 </resources>
