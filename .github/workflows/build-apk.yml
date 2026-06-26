@@ -59,8 +59,8 @@ jobs:
       # ============================================
       # 🔥 FIX: Download gradle-wrapper.jar
       # ============================================
-      - name: Download gradle-wrapper.jar
-        run: |
+            - name: Download gradle-wrapper.jar
+              run: |
           mkdir -p gradle/wrapper
           wget -q -O gradle/wrapper/gradle-wrapper.jar \
             https://raw.githubusercontent.com/gradle/gradle/v8.10.2/gradle/wrapper/gradle-wrapper.jar
@@ -72,11 +72,23 @@ jobs:
 
       - name: Build & Analyze
         run: |
-    ./gradlew clean --no-daemon
-    ./gradlew dependencies --no-daemon
-    ./gradlew lint --continue --stacktrace --no-daemon || true
-    ./gradlew check --continue --stacktrace --no-daemon || true
-    ./gradlew assembleDebug --continue --stacktrace --no-daemon
+          ./gradlew clean --no-daemon
+          ./gradlew dependencies --no-daemon
+          ./gradlew lint --continue --stacktrace --no-daemon || true
+          ./gradlew check --continue --stacktrace --no-daemon || true
+          ./gradlew assembleDebug --continue --stacktrace --no-daemon || true
+
+      - name: Upload Build Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            **/build/reports/**
+            **/build/outputs/logs/**
+            **/build/test-results/**
+            **/build/reports/tests/**
+          retention-days: 30
 
       - name: Upload APK
         if: success()
