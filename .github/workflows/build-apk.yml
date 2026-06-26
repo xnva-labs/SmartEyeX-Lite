@@ -71,7 +71,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build & Analyze
-  run: |
+        run: |
     ./gradlew clean --no-daemon
     ./gradlew dependencies --no-daemon
     ./gradlew lint --continue --stacktrace --no-daemon || true
