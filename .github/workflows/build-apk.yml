@@ -70,8 +70,13 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+      - name: Build & Analyze
+  run: |
+    ./gradlew clean --no-daemon
+    ./gradlew dependencies --no-daemon
+    ./gradlew lint --continue --stacktrace --no-daemon || true
+    ./gradlew check --continue --stacktrace --no-daemon || true
+    ./gradlew assembleDebug --continue --stacktrace --no-daemon
 
       - name: Upload APK
         if: success()
