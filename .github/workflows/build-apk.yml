@@ -166,8 +166,6 @@ jobs:
             **/build/reports/**
             **/build/test-results/**
             **/build/outputs/logs/**
-            **/build/tmp/**
-            **/build/intermediates/**
           retention-days: 30
 
       # ============================================
