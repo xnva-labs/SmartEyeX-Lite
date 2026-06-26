@@ -52,7 +52,7 @@
     <!-- AI & KNOWLEDGE -->
     <!-- ============================================ -->
     <PreferenceCategory
-        android:title="🧠 AI & Pengetahuan"
+        android:title="🧠 AI &amp; Pengetahuan"
         app:iconSpaceReserved="false">
 
         <SwitchPreferenceCompat
