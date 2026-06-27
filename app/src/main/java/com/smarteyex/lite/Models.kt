@@ -134,7 +134,7 @@ data class Profession(
 )
 
 // ========== PHYSICS (EP 10) ==========
-data class PhysicsConcept(
+data class PhysicsSystem(
     val name: String, val category: String,
     val formula: String, val variables: Map<String, String>,
     val unit: String, val realWorldExample: String,
