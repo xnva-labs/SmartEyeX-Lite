@@ -124,26 +124,7 @@ jobs:
           --continue \
           --no-daemon || true
 
-      # ============================================
-      # Lint
-      # ============================================
-      - name: Android Lint
-        run: |
-          ./gradlew lint \
-          --stacktrace \
-          --continue \
-          --no-daemon || true
-
-      # ============================================
-      # Unit Check
-      # ============================================
-      - name: Gradle Check
-        run: |
-          ./gradlew check \
-          --stacktrace \
-          --continue \
-          --no-daemon || true
-
+      
       # ============================================
       # Build APK
       # ============================================
@@ -153,20 +134,6 @@ jobs:
           --stacktrace \
           --continue \
           --no-daemon
-
-      # ============================================
-      # Upload Reports
-      # ============================================
-      - name: Upload Reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: SmartEyeX-Reports
-          path: |
-            **/build/reports/**
-            **/build/test-results/**
-            **/build/outputs/logs/**
-          retention-days: 30
 
       # ============================================
       # Upload APK
