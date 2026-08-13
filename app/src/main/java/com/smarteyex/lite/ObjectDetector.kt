@@ -7,9 +7,7 @@ import com.google.mediapipe.framework.image.MPImage
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.core.Delegate
 import com.google.mediapipe.tasks.vision.core.RunningMode
-import com.google.mediapipe.tasks.vision.objectdetector.ObjectDetector
-import com.google.mediapipe.tasks.vision.objectdetector.ObjectDetectorResult
-import java.util.concurrent.Executors
+import com.google.mediapipe.tasks.vision.objectdetector.ObjectDetector as MediaPipeObjectDetector
 
 class ObjectDetector {
     
@@ -39,7 +37,7 @@ class ObjectDetector {
     )
     
     // ========== MEDIAPIPE ==========
-    private var objectDetector: ObjectDetector? = null
+    private var objectDetector: MediaPipeObjectDetector? = null
     private var isInitialized = false
     
     // ========== OBJECT KNOWLEDGE ==========
@@ -94,14 +92,27 @@ class ObjectDetector {
     
     // ========== INITIALIZATION ==========
     
-    fun initialize(modelPath: String = "/data/local/tmp/efficientdet_lite0.tflite") {
+    /**
+     * Initializes MediaPipe object detection from a model packaged in app assets.
+     *
+     * No model is bundled in this repository, so callers must provide the asset path
+     * when a verified compatible model has been added. Leaving it null keeps object
+     * detection explicitly unavailable instead of attempting to load a nonexistent
+     * asset or silently substituting another detector.
+     */
+    fun initialize(modelAssetPath: String? = null) {
+        if (modelAssetPath.isNullOrBlank()) {
+            isInitialized = false
+            return
+        }
+
         try {
             val baseOptions = BaseOptions.builder()
-                .setModelAssetPath("efficientdet_lite0.tflite") // Taruh di assets/
+                .setModelAssetPath(modelAssetPath)
                 .setDelegate(Delegate.GPU) // Pake GPU kalo ada
                 .build()
             
-            objectDetector = ObjectDetector.createFromOptions(
+            objectDetector = MediaPipeObjectDetector.createFromOptions(
                 com.google.mediapipe.tasks.vision.objectdetector.ObjectDetectorOptions.builder()
                     .setBaseOptions(baseOptions)
                     .setRunningMode(RunningMode.IMAGE)

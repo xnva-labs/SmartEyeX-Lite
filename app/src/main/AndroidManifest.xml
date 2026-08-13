@@ -156,25 +156,6 @@
             android:exported="false" />
 
         <!-- ============================================ -->
-        <!-- BOOT RECEIVER (Restart service after reboot) -->
-        <!-- ============================================ -->
-        <receiver
-            android:name=".BootReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
-
-        <!-- ============================================ -->
-        <!-- FOREGROUND SERVICE (Keep AI alive) -->
-        <!-- ============================================ -->
-        <service
-            android:name=".XNAIService"
-            android:exported="false"
-            android:foregroundServiceType="camera|microphone" />
-
-        <!-- ============================================ -->
         <!-- ML KIT META-DATA -->
         <!-- ============================================ -->
         <meta-data

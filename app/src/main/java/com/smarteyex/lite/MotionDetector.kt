@@ -16,8 +16,16 @@ class MotionDetector {
     private val spikeMultiplier = 2.5f   // 2.5x rata-rata = spike
     private val highMotionThreshold = 40.0 // Di atas ini = gerakan tinggi
     
-    // Danger zones (normalized 0-1, area kiri-atas-kanan-bawah)
-    private var dangerZones = mutableListOf<Rect>()
+    // Danger zones use normalized floating-point coordinates (0-1). OpenCV's Rect
+    // is pixel-based and integer-only, so it is not suitable for this state.
+    private data class DangerZone(
+        val x: Float,
+        val y: Float,
+        val width: Float,
+        val height: Float
+    )
+
+    private val dangerZones = mutableListOf<DangerZone>()
     
     data class MotionResult(
         val motionLevel: Float,          // 0-100%
@@ -205,9 +213,14 @@ class MotionDetector {
      * Set zona bahaya (koordinat 0-1)
      */
     fun setDangerZone(x: Double, y: Double, width: Double, height: Double) {
-        dangerZones.add(
-            Rect(x, y, width, height)
-        )
+        require(x in 0.0..1.0 && y in 0.0..1.0) {
+            "Danger-zone origin must use normalized coordinates between 0 and 1"
+        }
+        require(width > 0.0 && height > 0.0 && x + width <= 1.0 && y + height <= 1.0) {
+            "Danger-zone bounds must remain within normalized coordinates between 0 and 1"
+        }
+
+        dangerZones.add(DangerZone(x.toFloat(), y.toFloat(), width.toFloat(), height.toFloat()))
     }
     
     /**
@@ -223,9 +236,9 @@ class MotionDetector {
     fun setDefaultDangerZones() {
         clearDangerZones()
         // Zona tengah frame — biasanya area kerja
-        dangerZones.add(Rect(0.2, 0.2, 0.6, 0.6))
+        dangerZones.add(DangerZone(0.2f, 0.2f, 0.6f, 0.6f))
         // Zona bawah — area dekat mesin
-        dangerZones.add(Rect(0.1, 0.6, 0.8, 0.4))
+        dangerZones.add(DangerZone(0.1f, 0.6f, 0.8f, 0.4f))
     }
     
     /**
