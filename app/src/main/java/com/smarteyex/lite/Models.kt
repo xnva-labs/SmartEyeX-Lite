@@ -148,13 +148,6 @@ data class MathFunction(
     val example: String, val relatedFunctions: List<String>
 )
 
-// ========== AI KNOWLEDGE (EP 12) ==========
-data class AIConcept(
-    val name: String, val category: String,
-    val description: String, val applications: List<String>,
-    val relatedTechnologies: List<String>
-)
-
 // ========== LAW (EP 13) ==========
 data class Law(
     val name: String, val category: String,
